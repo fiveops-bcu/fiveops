@@ -1,0 +1,28 @@
+
+# Arkadiusz – Docker and PostgreSQL Test Evidence
+
+## Implementation
+- Branch: `arkadiusz-docker`
+- Original commit: `db8f5ad`
+- Pull Request: #3
+- Status: Approved and merged into main
+
+## Local test results
+
+The Docker Compose test environment was executed successfully.
+
+- Tests passed: 13
+- Code coverage: 97.09%
+- Exit code: 0
+- Test environment: Docker Compose with PostgreSQL
+- Application container: `support-app:local`
+
+## Configuration files contributed
+- Dockerfile
+- .dockerignore
+- docker-compose.test.yml
+
+## Verification note
+
+These results were obtained in the local development environment.
+The application source code and test files still need to be available in the shared repository to allow independent reproduction from a fresh checkout.
