@@ -1,0 +1,12 @@
+.git
+.venv
+.vagrant
+tests
+reports
+docs
+ansible
+monitoring
+jenkins
+.env
+*.pem
+*.key
