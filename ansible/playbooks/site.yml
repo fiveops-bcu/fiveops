@@ -1,0 +1,9 @@
+- name: Baseline
+  ansible.builtin.import_playbook: common.yml
+
+- name: Jenkins
+  ansible.builtin.import_playbook: jenkins.yml
+
+# Enable once Aissatou provides agents.yml
+# - name: Monitoring agents
+#   ansible.builtin.import_playbook: agents.yml
