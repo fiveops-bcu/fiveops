@@ -1,0 +1,47 @@
+---
+- name: Configure common server baseline
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install Docker and SSH packages
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+          - openssh-server
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Ensure Docker is running
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Create deployment user
+      ansible.builtin.user:
+        name: deploy
+        shell: /bin/bash
+        create_home: true
+        groups: docker
+        append: true
+        state: present
+
+    - name: Create deployment SSH directory
+      ansible.builtin.file:
+        path: /home/deploy/.ssh
+        state: directory
+        owner: deploy
+        group: deploy
+        mode: "0700"
+
+    - name: Authorise Jenkins deployment key
+      ansible.builtin.lineinfile:
+        path: /home/deploy/.ssh/authorized_keys
+        create: true
+        line: "{{ lookup('file', playbook_dir + '/files/deploy_key.pub') | trim }}"
+        owner: deploy
+        group: deploy
+        mode: "0600"
