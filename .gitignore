@@ -228,3 +228,5 @@ fiveops-deploy
 .venv/
 reports/
 .vagrant/
+# Test reports
+reports/
