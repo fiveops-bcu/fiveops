@@ -218,3 +218,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# FiveOps secrets and local files
+*.env
+*.pem
+*.key
+.vault_pass*
+fiveops-deploy
+.venv/
+reports/
+.vagrant/
