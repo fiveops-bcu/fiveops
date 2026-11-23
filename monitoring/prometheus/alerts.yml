@@ -1,0 +1,12 @@
+
+groups:
+  - name: fiveops-alerts
+    rules:
+      - alert: ServerDown
+        expr: up{job="fiveops-servers"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "FiveOps server is unavailable"
+          description: "Node Exporter on {{ $labels.instance }} has been unreachable for over one minute."

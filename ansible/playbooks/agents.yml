@@ -1,9 +1,18 @@
+
 ---
-- name: Configure monitoring agents
+- name: Install monitoring agents
   hosts: app
   become: true
 
   tasks:
-    - name: Confirm monitoring agent configuration
-      ansible.builtin.debug:
-        msg: "Preparing monitoring agents for the application servers"
+    - name: Install Prometheus Node Exporter
+      ansible.builtin.apt:
+        name: prometheus-node-exporter
+        state: present
+        update_cache: true
+
+    - name: Enable and start Node Exporter
+      ansible.builtin.service:
+        name: prometheus-node-exporter
+        state: started
+        enabled: true
