@@ -1,38 +1,37 @@
-# Arkadiusz Borkowski – CI/CD Engineer
-
-## My role
-Responsible for the CI/CD pipeline, Docker containerisation, automated testing integration and supporting the build and delivery process for the FiveOps support-ticket application.
-
-## Completed
-
-- Accessed the FiveOps GitHub repository and checked the project structure.
-- Reviewed Pull Request #1 – Add requirements files.
-- Inspected `requirements.txt` and `requirements-dev.txt`.
-- Submitted a review comment recommending package version constraints to improve consistency across development environments and the Jenkins CI pipeline.
-- Marked both changed files as reviewed.
-
 ## In progress
 
-- Preparing the Dockerfile for the support-ticket application.
-- Preparing to integrate Docker with the application and its dependencies.
-- Preparing for Jenkins pipeline configuration.
+- Completing the Docker image build stage in the Jenkins CI/CD pipeline.
+- Addressing review feedback on Pull Request #12.
+- Updating the individual contribution documentation.
+- Verifying the updated pipeline on the PR branch.
+- Coordinating with the team on the remaining security and deployment requirements.
 
 ## Next steps
 
-1. Review and integrate the application code from Pull Request #2.
-2. Create and test the Dockerfile locally.
-3. Configure Jenkins once the server is available.
-4. Work with Fadumo to configure the required Jenkins credentials securely.
-5. Create the multibranch pipeline and verify the first successful automated build.
-6. Integrate automated tests and security checks into the CI/CD workflow.
+1. Address Yasin's requested changes on Pull Request #12.
+2. Verify the Docker image build stage on the updated PR branch.
+3. Update and commit the CI/CD documentation.
+4. Request another review from the team leader.
+5. Coordinate with Fadumo on security checks and Jenkins credentials.
+6. Coordinate with Abdisalan on platform and deployment dependencies.
+7. Continue integration of security scanning, image publishing and deployment stages.
 
 ## Blockers and dependencies
 
-- Waiting for the application code and dependencies from Yasin's Pull Request #2.
-- Waiting for Abdisalan to make the Jenkins server available.
-- Jenkins credentials configuration depends on the Jenkins server being operational.
+- Pull Request #12 requires further changes and another review before merging.
+- The new Docker image build stage has not yet been verified by a successful Jenkins build on the PR branch.
+- Security checks and credentials require coordination with Fadumo.
+- Image publishing and deployment depend on the platform configuration and support from Abdisalan.
 
 ## Evidence
 
-- Pull Request #1 review: GitHub repository – `fiveops-bcu/fiveops`, PR #1.
-- Review comment submitted on the requirements files.
+- Pull Request #1: requirements files review.
+- Pull Request #12: Add Docker image build stage.
+- Jenkins Build #2 on `main`: SUCCESS.
+- Automated tests: 13 passed.
+- PostgreSQL integration test: passed.
+- Test coverage: 97.09%.
+- Jenkins archived the coverage report and recorded JUnit test results.
+- Docker-based test execution completed successfully using PostgreSQL 17.
+
+
