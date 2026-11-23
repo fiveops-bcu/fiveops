@@ -5,36 +5,38 @@ Updated: 23 November 2026
 Related pull request: #14
 Board issue: pending identification and linking.
 
-This inventory documents planned arrangements. Ownership does not automatically grant access. Proposed access and storage must be verified with the team. No secret values are included.
+Source: Yasin Miah, FiveOps Checkpoint 2 plan, version 1, 14 November 2026, page 7.
 
-| Secret name / ID | Purpose | Planned storage | Owner | Who can read / Access | Rotation |
+Storage and rotation below follow the plan. Actual access and implementation remain subject to verification. Ownership does not automatically grant access. No secret values are included.
+
+| Secret name / ID | Purpose | Storage specified in plan | Owner | Who can read / Access | Rotation specified in plan |
 | --- | --- | --- | --- | --- | --- |
-| github-access | Jenkins repository access and reporting checks | Jenkins Credentials | Arkadiusz | Proposed: authorised Jenkins jobs and credential administrators; pending verification | 90 days proposed; team agreement pending |
-| ghcr-push | Push container images to GHCR | Jenkins Credentials | Arkadiusz | Proposed: image-publishing Jenkins job and credential administrators; pending verification | 90 days proposed; team agreement pending |
-| deploy-ssh | Ansible login to servers | Jenkins Credentials | Abdisalan | Proposed: deployment job and authorised credential administrators; pending verification | If leaked; routine schedule pending agreement |
-| ansible-vault-pass | Decrypt Ansible Vault files | Jenkins Credentials for automation; recovery storage pending team agreement | Fadumo | Proposed: deployment job; named recovery custodians and administrator access pending verification | If leaked; routine schedule pending agreement |
-| vault_db_password | Database access; separate values for test and production | Ansible Vault for each environment | Fadumo | Proposed: deployment process and application runtime for the relevant environment; pending verification | If leaked; routine schedule pending agreement |
-| vault_ghcr_read_token | Allow servers to pull container images | Ansible Vault for test and production | Abdisalan | Proposed: deployment process and authorised image-pull processes on target servers; pending verification | 90 days proposed; team agreement pending |
-| vault_grafana_admin_password | Grafana administrator access | Ansible Vault for monitoring | Aissatou | Proposed: monitoring provisioning process and named Grafana administrators; pending verification | If leaked; routine schedule pending agreement |
+| github-access | Repository access and reporting checks | Jenkins Credentials | Arkadiusz | Proposed: authorised Jenkins jobs and credential administrators; pending verification | 90 days; current team confirmation pending |
+| ghcr-push | Push images to GHCR | Jenkins Credentials | Arkadiusz | Proposed: publishing job and credential administrators; pending verification | 90 days; current team confirmation pending |
+| deploy-ssh | Ansible login to servers | Jenkins Credentials | Abdisalan | Proposed: deployment job and authorised credential administrators; pending verification | If leaked |
+| ansible-vault-pass | Decrypt vault files | Jenkins Credentials and Fadumo's password manager | Fadumo | Proposed: deployment job; administrator access and recovery custodians pending verification | If leaked |
+| vault_db_password | Database access; separate test and production values | Ansible Vault for each environment | Fadumo | Proposed: deployment process and relevant application runtime; pending verification | If leaked |
+| vault_ghcr_read_token | Pull container images | Ansible Vault for test and production | Abdisalan | Proposed: deployment and authorised image-pull processes; pending verification | 90 days; current team confirmation pending |
+| vault_grafana_admin_password | Grafana administrator access | Ansible Vault for monitoring | Aissatou | Proposed: provisioning process and named Grafana administrators; pending verification | If leaked |
 
 ## Vault password storage and recovery
 
-Jenkins Credentials is the proposed operational store so the authorised deployment job can decrypt the vault files.
+Page 7 of Yasin's plan specifies both Jenkins Credentials and Fadumo's password manager for ansible-vault-pass.
 
-The earlier password-manager entry was intended as a recovery copy if the Jenkins credential became unavailable. It was not evidence that a second copy had been created or approved.
+The Jenkins copy supports automated decryption. The password-manager copy is intended for recovery if the operational copy becomes unavailable. This explains the purpose of keeping both; the plan does not specify a detailed recovery procedure.
 
-Before creating a recovery copy, the team must agree its approved storage location, named custodians, access restrictions and recovery procedure. A personal password manager is not recorded as approved storage.
+The team must verify actual storage, authorised users, password-manager access controls, recovery custodians and the recovery procedure. This inventory does not claim those checks are complete or grant additional access.
 
-If the password is exposed, rotation must include rekeying the affected vault files and updating the approved operational and recovery copies.
+If exposed, rotate the password by rekeying affected vault files and updating the operational and recovery copies.
 
-## Verification and traceability
+## Rotation and traceability
 
-- Arkadiusz reported creating github-access; its configuration and effective access still require verification.
-- Confirm all four Jenkins credential IDs, job access and administrator permissions on the shared instance.
-- Confirm the vault password storage, access and recovery arrangement with the team.
-- The proposed 90-day periods came from the Checkpoint 2 plan; team approval and implementation remain unverified.
-- Identify the relevant GitHub board issue and link it to PR #14.
-- Record confirmations and supporting evidence in this PR before marking these arrangements verified.
+- The 90-day periods for github-access, ghcr-push and vault_ghcr_read_token are specified in Yasin's plan.
+- Current team confirmation, rotation dates and implementation still require verification.
+- Arkadiusz reported creating github-access; its configuration and effective access remain to be checked.
+- Verify all four Jenkins credential IDs and access restrictions on the shared instance.
+- Obtain the relevant board issue link from Yasin or Abdisalan and link it to PR #14.
+- Record team confirmations and Jenkins evidence before marking these items verified.
 
 ## Handling rules
 
