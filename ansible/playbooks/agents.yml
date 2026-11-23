@@ -1,0 +1,9 @@
+---
+- name: Configure monitoring agents
+  hosts: app
+  become: true
+
+  tasks:
+    - name: Confirm monitoring agent configuration
+      ansible.builtin.debug:
+        msg: "Preparing monitoring agents for the application servers"
