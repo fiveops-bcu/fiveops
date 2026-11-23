@@ -1,9 +1,14 @@
+
 pipeline {
     agent any
 
     options {
         timestamps()
         timeout(time: 20, unit: 'MINUTES')
+    }
+
+    environment {
+        IMAGE_NAME = 'support-app'
     }
 
     stages {
@@ -21,6 +26,22 @@ pipeline {
                         --abort-on-container-exit \
                         --exit-code-from tests
                 '''
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    env.IMAGE_TAG = env.GIT_COMMIT.take(7)
+                }
+
+                sh '''
+                    docker build \
+                        -t ${IMAGE_NAME}:${IMAGE_TAG} \
+                        .
+                '''
+
+                echo "Built image: ${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
     }
