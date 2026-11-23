@@ -44,3 +44,23 @@
 
 - Team permissions and branch protection still need to be verified.
 
+
+## Progress update: 23 November 2026
+
+### Completed
+- Secret-file ignore rules merged through PR #8. All nine sample paths passed git check-ignore.
+- On 22 November, Gitleaks 8.30.1 scanned 41 commits across fetched branches and reported no leaks.
+- On 23 November, a direct push to main was rejected with GH013: changes must go through a pull request. Removed the local empty test commit afterwards.
+- Confirmed the test configuration contains an 80% coverage threshold. This was a configuration check, not a successful Jenkins run.
+
+### Awaiting review
+- PR #14 adds the planned seven-secret inventory. Actual storage and permissions still require confirmation with the owners.
+
+### Remaining work
+- Coordinate Gitleaks, Bandit and Trivy pipeline gates with Arkadiusz; no references appeared in the three configuration files checked.
+- Verify team-wide 2FA and push protection with Yasin.
+- Coordinate Jenkins credentials, encrypted vault files and access permissions with the team.
+- Review Aissatou's pull request and leave written feedback.
+- Add screenshots to docs/evidence through a pull request. Screenshots are collected separately but are not yet linked here.
+
+This update supersedes the earlier planned status for the ignore rules, secret scan and branch-protection check.
