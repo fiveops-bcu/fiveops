@@ -1,4 +1,4 @@
-Markdown content for aissatou.md
+\# FiveOps - Operations Engineer Contribution
 
 
 
@@ -6,9 +6,9 @@ Markdown content for aissatou.md
 
 
 
-\*\*Name:\*\* Aissatou Diallo  
+\*\*Name:\*\* Aissatou Diallo
 
-\*\*Module:\*\* CMP6237 – DevOps and Enterprise Automation  
+\*\*Module:\*\* CMP6237 – DevOps and Enterprise Automation
 
 \*\*Branch:\*\* feature/operations-monitoring
 
@@ -46,25 +46,37 @@ My assigned tasks include:
 
 \*\*Completed:\*\*
 
-\- Joined the FiveOps GitHub organisation.
+\- Created the initial Ansible monitoring agent playbook.
 
-\- Cloned the team repository onto my university laptop.
+\- Prepared the Prometheus monitoring configuration.
 
-\- Configured my Git identity.
+\- Created a server availability alert rule.
 
-\- Created the `feature/operations-monitoring` branch.
+\- Documented the rollback and recovery procedure.
+
+\- Committed and pushed the files to GitHub.
 
 
 
 \*\*In progress:\*\*
 
-\- Preparing the monitoring configuration and alert rules.
+\- Integrating the monitoring configuration with the team's infrastructure.
 
-
+\- Testing monitoring alerts and recovery procedures.
 
 \## Evidence
 
 
 
-Evidence will be added as configuration, testing and pull requests are completed.
+\- GitHub branch: feature/operations-monitoring
+
+\- Ansible playbook: ansible/playbooks/agents.yml
+
+\- Prometheus configuration: monitoring/prometheus/prometheus.yml
+
+\- Alert rules: monitoring/prometheus/alerts.yml
+
+\- Rollback plan: docs/operations/rollback.md
+
+\- Monitoring and rollback testing: Pending
 
