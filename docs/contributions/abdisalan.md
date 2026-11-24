@@ -46,3 +46,37 @@ guest and Tailscale services remaining operational.
 3. Support Arkadiusz's Jenkins pipeline integration.
 4. Implement and test Ansible deployment.
 5. Collect screenshots, logs and evaluation evidence.
+## Progress Update — 24 November 2026
+
+### Completed Infrastructure Work
+
+- Created and started the FiveOps Ubuntu 24.04 test VM using Vagrant and VMware Workstation.
+- Confirmed connectivity between the Jenkins server (`192.168.174.128`) and test server (`192.168.174.129`).
+- Created the `deploy` account and configured secure SSH public-key authentication.
+- Verified Ansible connectivity using the ping module.
+- Verified Ansible administrator access to the test server.
+- Installed Docker and Docker Compose using Ansible.
+- Executed `common.yml` successfully against the test environment.
+- Verified Docker access without sudo for the deployment account.
+- Completed an Ansible idempotency test with **6 successful tasks, 0 changes, 0 failures and 0 unreachable hosts**.
+- Downloaded the latest FiveOps application source separately to overcome Git fetch timeouts.
+
+### Work Remaining
+
+- Develop and test the Ansible `deploy.yml` playbook.
+- Deploy the Flask application and PostgreSQL database to the test VM.
+- Verify the application `/health` endpoint.
+- Integrate deployments with Jenkins and GHCR.
+- Create and configure the production VM.
+- Implement production approval, rollback and recovery testing.
+- Collect screenshots and deployment evidence.
+
+### Current Progress
+
+Estimated Platform Engineer progress: approximately 60%.
+
+The infrastructure for the test environment is working. Application deployment, production configuration and pipeline integration remain incomplete.
+
+### Next Milestone
+
+Deploy the FiveOps application to the test environment and verify a successful health-check response.
