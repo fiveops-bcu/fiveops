@@ -1,0 +1,78 @@
+---
+- name: Deploy FiveOps application to test
+  hosts: app
+  become: true
+
+  vars:
+    app_dir: /opt/fiveops
+
+  tasks:
+    - name: Create application directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Configure PostgreSQL and application
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/compose.yml"
+        owner: root
+        group: root
+        mode: "0600"
+        content: |
+          services:
+            db:
+              image: postgres:17
+              restart: unless-stopped
+              environment:
+                POSTGRES_DB: fiveops
+                POSTGRES_USER: fiveops
+                POSTGRES_PASSWORD: "{{ db_password }}"
+              volumes:
+                - pgdata:/var/lib/postgresql/data
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U fiveops -d fiveops"]
+                interval: 5s
+                timeout: 5s
+                retries: 15
+
+            app:
+              image: fiveops-support:test
+              pull_policy: never
+              restart: unless-stopped
+              ports:
+                - "8000:8000"
+              environment:
+                DATABASE_URL: "postgresql+psycopg://fiveops:{{ db_password }}@db:5432/fiveops"
+                APP_VERSION: "test"
+              depends_on:
+                db:
+                  condition: service_healthy
+
+          volumes:
+            pgdata:
+      no_log: true
+
+    - name: Start FiveOps application
+      community.docker.docker_compose_v2:
+        project_src: /opt/fiveops
+        files:
+          - compose.yml
+        state: present
+        pull: missing
+        recreate: auto
+        wait: true
+        wait_timeout: 120
+
+    - name: Verify application health
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8000/health
+        method: GET
+        status_code: 200
+        return_content: true
+      register: health_result
+      until: health_result.status == 200
+      retries: 15
+      delay: 4
