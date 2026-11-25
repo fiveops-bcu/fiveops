@@ -4,7 +4,7 @@
 
 **Checkpoint 2 baseline:** 20 November 2026
 
-**Status:** Assessment methods, pass marks and owners defined; measured results remain **not yet verified**. The 20 and 27 November integration sessions are planned test opportunities, not completed tests.
+**Status (reviewed 24 November 2026):** Assessment methods, pass marks and owners are defined. **None of targets 01–08 is yet verified as passed**. Partial platform and test observations are listed below without being misrepresented as complete deployment or drill results.
 
 | ID | Business need | Repeatable method | Pass criterion | Accountable owner(s) | Evidence to capture | Result |
 |---|---|---|---|---|---|---|
@@ -23,6 +23,15 @@
 |---|---|---|---|---|---|---|---|---|
 | Pending | 01–08 | — | — | — | — | Not run / not evidenced | — | — |
 
+## Interim observations reviewed on 24 November 2026 (not full target passes)
+
+| Related target | Recorded observation | Evidence and limitations | Target result |
+|---|---|---|---|
+| **05 — Infrastructure repeatability** | Abdisalan's 24 November contribution update reports an Ansible idempotency run on the **VMware test VM** with **6 successful tasks, 0 changes, 0 failures and 0 unreachable hosts**. | [PR #23](https://github.com/fiveops-bcu/fiveops/pull/23) is a reviewed and merged **contribution statement**, not a linked raw Ansible PLAY RECAP. The planned four-VM provision and rebuilt-VM restoration have not been evidenced; request command output/screenshots and a second full-run log. | **Pending — partial reported evidence only** |
+| **06 — Test gate** | Arkadiusz reports Jenkins build #2 with **13 passing tests** and **97.09% coverage**; the associated image build was also reported successful. | [Issue #16](https://github.com/fiveops-bcu/fiveops/issues/16) records results for branch `ArkadiuszB850414-patch-2`, commit `163ff26ce7d377328020132a1538f859e27a1828`. An independently accessible Jenkins build URL, attached XML reports and proof that deployment is blocked on a failing build remain outstanding. | **Pending — partial reported evidence only** |
+
+**Not performed or evidenced:** no end-to-end deployment timing trial (01), three rollback drills (02), complete release trace (03), full access audit (04), fully verified deployment gate (06), three alert timing trials (07), or nightly test-VM shutdown validation (08). Do not fill the main measurement register with invented trial dates or elapsed times. After the responsible member performs a drill, record its actual UTC timestamps, target, environment, result and evidence URL and then assess it against the defined pass criterion.
+
 ## Protocol for target 01 — end-to-end deployment timing
 
 1. Choose a reviewed PR and record its merge commit (or the allowed triggering commit), test environment and baseline application version.
@@ -32,7 +41,7 @@
 5. Calculate `elapsed = finish − start − documented approval wait`; identify network/cold-start and other limitations.
 6. Store screenshots/logs with secrets redacted under `docs/evidence/` and link the source build URL.
 
-## Evaluation limitations as of 20 November 2026
+## Evaluation limitations — original 20 November baseline (retained for history)
 
 - A [Docker/PostgreSQL local-test evidence document](evidence/arkadiusz-docker-tests.md) reports 13 passing tests and 97.09% coverage; this is **not** a verified hosted Jenkins gate or end-to-end deployment timing.
 - The current `Jenkinsfile` on `main` contains checkout and Docker test stages; full security scans, image publishing, and automated deployment are not evidenced in that file.
