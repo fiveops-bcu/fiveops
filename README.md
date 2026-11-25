@@ -6,13 +6,13 @@
 
 **Team Leader:** Yasin Mohammed Miah
 
-**Status snapshot:** 20 November 2026; implementation is a coursework proof of concept, not a deployed production service.
+**Status snapshot:** 25 November 2026; implementation is a coursework proof of concept, not a deployed production service.
 
 ## What FiveOps is building
 
 FiveOps is a five-person DevOps team working on a small Flask support-ticket API and its delivery process. The expected flow is: a contributor pushes a branch → an independent reviewer checks the pull request → Jenkins runs tests and security gates → a versioned container image can be published and deployed → operational checks and evaluation evidence trace the result back to the change.
 
-**Implementation status is deliberately separated from the target architecture.** GitHub contains application and test code, a basic Jenkinsfile, Docker configuration, a four-server Vagrantfile and baseline/Jenkins Ansible playbooks. A shared Jenkins build, full Gitleaks/Bandit/Trivy pipeline, registry publishing, production deployment, monitoring and rollback have not been verified from the current repository evidence.
+**Implementation status is deliberately separated from the target architecture.** `main` now contains the application and tests, a Jenkinsfile with Gitleaks, Docker Compose tests (coverage gate 80%), Bandit, image build, Trivy, GHCR publishing, an Ansible TEST deployment with automatic rollback, and a production approval stage that is off by default (`ENABLE_PRODUCTION_DEPLOY`). **Not yet on `main` or not yet evidenced:** Jenkins status reporting to GitHub, a working production deployment, the monitoring stack (branch `feature/operations-monitoring`), Teams alert delivery, the rollback and idle Jenkins jobs, and measured results for targets 01–08.
 
 ## Team and contributions
 
@@ -33,10 +33,10 @@ app/                        Flask application, models and ticket routes
 tests/                      Unit and PostgreSQL integration tests
 Dockerfile                  Runtime container image
 docker-compose.test.yml      PostgreSQL + pytest test services
-Jenkinsfile                 Current minimal checkout + Docker test pipeline
+Jenkinsfile                 Scans, tests, image build, GHCR push, TEST deploy, gated PROD
 Vagrantfile                 Four Ubuntu 24.04 local VMs
 ansible/inventory/           Vagrant/test/prod/monitoring inventories
-ansible/playbooks/           Common baseline, Jenkins installer and site orchestration
+ansible/playbooks/           Baseline, Jenkins installer, site, deploy (TEST) and deploy-prod
 docs/                       Assessment records, sprint summaries, evidence, contributions
 .github/                    Pull request template
 requirements.txt            Application dependencies
@@ -53,11 +53,13 @@ Developer branch → GitHub PR → review → protected main
                         |
          checkout → Docker Compose + PostgreSQL tests (in Jenkinsfile)
                         |
-         Gitleaks → Bandit → Docker image → Trivy (planned gates)
+         Gitleaks → Bandit → Docker image → Trivy (in Jenkinsfile)
                         |
-              GHCR tagged image (planned publishing)
+              GHCR tagged image (in Jenkinsfile; registry evidence pending)
                         |
-      Test / production service → Prometheus/Grafana (planned)
+      TEST deploy with rollback (in Jenkinsfile) → PROD (gated; fix pending)
+                        |
+             Prometheus/Grafana/Alertmanager (branch, not yet on main)
 ```
 
 The four local Ubuntu VMs are defined in `Vagrantfile`:
@@ -134,7 +136,7 @@ The four-server build and second-run idempotence check have **not** been evidenc
 
 ## Jenkins CI status and dependencies
 
-The current `Jenkinsfile` checks out the repository and runs Docker Compose tests. The full coursework pipeline is **not** complete until GitHub PR build reporting, Gitleaks, pytest ≥80%, Bandit, Trivy, GHCR publishing and a genuine hosted/shared Jenkins run have been implemented and verified. A proposed interim GitHub Actions workflow would be separate and does not run `Jenkinsfile`.
+The current `Jenkinsfile` runs Gitleaks, Docker Compose tests against PostgreSQL 17 (coverage gate 80%), Bandit, an image build tagged with the 7-character commit, and Trivy; on `main` it pushes the image to GHCR and deploys it to TEST with Ansible, then waits for approval before PROD when `ENABLE_PRODUCTION_DEPLOY` is ticked. Still to do and evidence: Jenkins commit statuses on GitHub PRs (so `protect-main` can require them), the PROD stage's database secret and rollback, pinned scanner versions on the Jenkins server, and a linked Jenkins run for one traced release.
 
 Credentials and vault files must **never** be committed in plaintext. Jenkins credentials, environment-level vaults and access matrix remain a Fadumo/Arkadiusz security task. Note that membership of the Docker group grants very high privileges; isolate CI jobs before any internet-facing deployment.
 
