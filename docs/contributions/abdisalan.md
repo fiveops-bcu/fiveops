@@ -80,3 +80,38 @@ The infrastructure for the test environment is working. Application deployment, 
 ### Next Milestone
 
 Deploy the FiveOps application to the test environment and verify a successful health-check response.
+
+## Progress Update — 25 November 2026
+
+### Completed and Verified
+
+- Deployed the FiveOps Flask application and PostgreSQL to the VMware test VM using Ansible.
+- Verified application health with HTTP 200 and {"status":"ok"}.
+- Configured Jenkins SSH, sudo and Ansible Vault credentials.
+- Successfully tested Jenkins-triggered Ansible deployment.
+- Configured the GHCR publishing credential `ghcr-push` in Jenkins.
+- Verified Gitleaks 8.30.1 runs under the Jenkins service account.
+- Created PR #31 for Jenkins image transfer and Ansible integration.
+- Created PR #33 for draft automatic rollback functionality.
+- Added Ansible block/rescue recovery logic and release logging.
+- Passed Ansible syntax and Git formatting checks.
+- Verified the previous Docker image is available on the test VM.
+- Created and verified the root-protected Compose recovery backup.
+- Created a PostgreSQL backup and verified its archive catalogue.
+- Configured Tailscale on the test VM and created an individual Linux account for the Operations Engineer.
+
+### Outstanding Work
+
+- Complete and measure a controlled automatic rollback test.
+- Integrate GHCR image publishing and deployment with Arkadiusz.
+- Provision production and monitoring VMs when resources permit.
+- Complete infrastructure rebuild evidence and deployment measurements.
+- Obtain reviews and approval for PR #31 and PR #33.
+
+### Pull Requests
+
+- PR #25: Ansible test deployment (merged).
+- PR #31: Jenkins–Ansible integration (open).
+- PR #33: Automatic rollback implementation (open; testing pending).
+
+No successful automatic rollback or full production deployment is claimed at this stage.
