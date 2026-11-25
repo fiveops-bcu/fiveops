@@ -18,6 +18,16 @@ pipeline {
             }
         }
 
+        stage('Gitleaks Security Scan') {
+            steps {
+                sh 'rm -rf security-reports'
+                sh 'mkdir -p security-reports'
+                sh 'test $(git rev-parse --is-shallow-repository) = false'
+                sh 'gitleaks version'
+                sh 'gitleaks git . --log-opts=--all --redact=100 --report-format json --report-path security-reports/gitleaks.json --exit-code 1'
+            }
+        }
+
         stage('Run Docker Tests') {
             steps {
                 sh '''
@@ -26,6 +36,14 @@ pipeline {
                         --abort-on-container-exit \
                         --exit-code-from tests
                 '''
+            }
+        }
+
+        stage('Bandit Security Scan') {
+            steps {
+                sh 'bandit --version'
+                sh 'bandit -r app/ -f json -o security-reports/bandit.json --exit-zero'
+                sh 'bandit -r app/ -lll'
             }
         }
 
@@ -44,10 +62,20 @@ pipeline {
                 echo "Built image: ${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
+        stage('Trivy Image Scan') {
+            steps {
+                sh 'trivy --version'
+                sh 'trivy image --severity HIGH,CRITICAL --format json --output security-reports/trivy.json --exit-code 0 ${IMAGE_NAME}:${IMAGE_TAG}'
+                sh 'trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 ${IMAGE_NAME}:${IMAGE_TAG}'
+            }
+        }
+
     }
 
     post {
         always {
+            archiveArtifacts artifacts: 'security-reports/*.json', allowEmptyArchive: true
+
             script {
                 if (fileExists('reports/junit.xml')) {
                     junit testResults: 'reports/junit.xml'
