@@ -81,6 +81,7 @@
               volumes:
                 pgdata:
           no_log: true
+          register: compose_configuration
 
         - name: Start FiveOps application
           community.docker.docker_compose_v2:
@@ -92,6 +93,7 @@
             recreate: auto
             wait: true
             wait_timeout: 120
+          register: compose_deployment
 
         - name: Verify application health
           ansible.builtin.uri:
@@ -110,14 +112,21 @@
             owner: root
             group: root
             mode: "0600"
+        - name: Capture deployment timestamp
+          ansible.builtin.command: date -u +%Y-%m-%dT%H:%M:%SZ
+          register: deployment_timestamp
+          changed_when: false
+          when: compose_configuration.changed | default(false) or compose_deployment.changed | default(false)
+
         - name: Log successful deployment
           ansible.builtin.lineinfile:
             path: "{{ app_dir }}/releases.log"
-            line: "DEPLOY {{ app_version | default('test') }} SUCCESS"
+            line: "{{ deployment_timestamp.stdout }} DEPLOY {{ app_version | default('test') }} SUCCESS"
             create: true
             owner: root
             group: root
             mode: "0600"
+          when: compose_configuration.changed | default(false) or compose_deployment.changed | default(false)
 
       rescue:
         - name: Stop if no healthy previous release exists
@@ -159,10 +168,15 @@
           retries: 15
           delay: 4
 
+        - name: Capture rollback timestamp
+          ansible.builtin.command: date -u +%Y-%m-%dT%H:%M:%SZ
+          register: rollback_timestamp
+          changed_when: false
+
         - name: Log successful rollback
           ansible.builtin.lineinfile:
             path: "{{ app_dir }}/releases.log"
-            line: "ROLLBACK {{ app_version | default('test') }} FAILED - PREVIOUS_VERSION RESTORED"
+            line: "{{ rollback_timestamp.stdout }} ROLLBACK {{ app_version | default('test') }} FAILED - PREVIOUS_VERSION RESTORED"
             create: true
             owner: root
             group: root
