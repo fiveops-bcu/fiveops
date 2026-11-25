@@ -7,6 +7,14 @@ pipeline {
         timeout(time: 60, unit: 'MINUTES')
     }
 
+    parameters {
+        booleanParam(
+            name: 'ENABLE_PRODUCTION_DEPLOY',
+            defaultValue: false,
+            description: 'Enable only after production acceptance'
+        )
+    }
+
     environment {
         IMAGE_NAME = 'support-app'
         GHCR_OWNER = 'fiveops-bcu'
@@ -143,6 +151,7 @@ pipeline {
             when {
                 allOf {
                     branch 'main'
+                    expression { params.ENABLE_PRODUCTION_DEPLOY }
                     not {
                         changeRequest()
                     }
@@ -163,6 +172,7 @@ pipeline {
             when {
                 allOf {
                     branch 'main'
+                    expression { params.ENABLE_PRODUCTION_DEPLOY }
                     not {
                         changeRequest()
                     }
