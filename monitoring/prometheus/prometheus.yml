@@ -12,3 +12,19 @@ scrape_configs:
       - targets:
           - '192.168.56.11:9100'
           - '192.168.56.12:9100'
+
+  - job_name: 'fiveops-application'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - 'http://192.168.56.11:8000/health'
+          - 'http://192.168.56.12:8000/health'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115
