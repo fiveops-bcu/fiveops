@@ -4,11 +4,12 @@ pipeline {
 
     options {
         timestamps()
-        timeout(time: 20, unit: 'MINUTES')
+        timeout(time: 30, unit: 'MINUTES')
     }
 
     environment {
         IMAGE_NAME = 'support-app'
+        GHCR_OWNER = 'fiveops-bcu'
     }
 
     stages {
@@ -62,6 +63,7 @@ pipeline {
                 echo "Built image: ${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
+
         stage('Trivy Image Scan') {
             steps {
                 sh 'trivy --version'
@@ -70,6 +72,75 @@ pipeline {
             }
         }
 
+        stage('Publish Docker Image to GHCR') {
+            when {
+                allOf {
+                    branch 'main'
+                    not {
+                        changeRequest()
+                    }
+                }
+            }
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'ghcr-publish',
+                        usernameVariable: 'GHCR_USER',
+                        passwordVariable: 'GHCR_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set +x
+                        set -e
+
+                        IMAGE="ghcr.io/${GHCR_OWNER}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+                        trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+
+                        echo "$GHCR_TOKEN" | docker login ghcr.io \
+                            --username "$GHCR_USER" \
+                            --password-stdin
+
+                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} "$IMAGE"
+                        docker push "$IMAGE"
+
+                        docker image inspect "$IMAGE" \
+                            --format='{{range .RepoDigests}}{{println .}}{{end}}' \
+                            | head -n 1 > security-reports/image-digest.txt
+
+                        echo "Published image: $IMAGE"
+                    '''
+
+                    archiveArtifacts(
+                        artifacts: 'security-reports/image-digest.txt',
+                        fingerprint: true
+                    )
+                }
+            }
+        }
+
+        stage('Deploy to TEST') {
+            when {
+                allOf {
+                    branch 'main'
+                    not {
+                        changeRequest()
+                    }
+                }
+            }
+            steps {
+                sshagent(credentials: ['ansible-test-ssh']) {
+                    sh '''
+                        set -e
+
+                        ansible-playbook \
+                            -i ansible/inventory/test \
+                            ansible/playbooks/deploy.yml \
+                            -e "app_image=ghcr.io/${GHCR_OWNER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                    '''
+                }
+            }
+        }
     }
 
     post {
