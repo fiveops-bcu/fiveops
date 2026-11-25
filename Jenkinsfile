@@ -7,6 +7,14 @@ pipeline {
         timeout(time: 60, unit: 'MINUTES')
     }
 
+    parameters {
+        booleanParam(
+            name: 'ENABLE_PRODUCTION_DEPLOY',
+            defaultValue: false,
+            description: 'Enable only after production acceptance'
+        )
+    }
+
     environment {
         IMAGE_NAME = 'support-app'
         GHCR_OWNER = 'fiveops-bcu'
@@ -170,6 +178,7 @@ ansible-playbook \
             when {
                 allOf {
                     branch 'main'
+                    expression { params.ENABLE_PRODUCTION_DEPLOY }
                     not {
                         changeRequest()
                     }
@@ -190,6 +199,7 @@ ansible-playbook \
             when {
                 allOf {
                     branch 'main'
+                    expression { params.ENABLE_PRODUCTION_DEPLOY }
                     not {
                         changeRequest()
                     }
