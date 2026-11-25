@@ -7,6 +7,26 @@
     app_dir: /opt/fiveops
 
   tasks:
+    - name: Validate deployment image, version and database configuration
+      ansible.builtin.assert:
+        that:
+          - (app_image | default('')) is match('^ghcr\.io/fiveops-bcu/support-app:[a-f0-9]{7,40}$')
+          - (app_version | default('')) is match('^[a-f0-9]{7,40}$')
+          - (app_image | default('')) == ('ghcr.io/fiveops-bcu/support-app:' ~ (app_version | default('')))
+          - (db_password | default('')) | length > 0
+        fail_msg: "Missing or invalid GHCR image, release version or database secret."
+      no_log: true
+
+    - name: Authenticate to GHCR when using a private package
+      community.docker.docker_login:
+        registry_url: ghcr.io
+        username: "{{ ghcr_read_username }}"
+        password: "{{ ghcr_read_token }}"
+      when:
+        - (ghcr_read_username | default('')) | length > 0
+        - (ghcr_read_token | default('')) | length > 0
+      no_log: true
+
     - name: Create application directory
       ansible.builtin.file:
         path: "{{ app_dir }}"
@@ -66,14 +86,14 @@
                     retries: 15
 
                 app:
-                  image: "{{ app_image | default('fiveops-support:test') }}"
-                  pull_policy: never
+                  image: "{{ app_image }}"
+                  pull_policy: missing
                   restart: unless-stopped
                   ports:
                     - "8000:8000"
                   environment:
                     DATABASE_URL: "postgresql+psycopg://fiveops:{{ db_password }}@db:5432/fiveops"
-                    APP_VERSION: "{{ app_version | default('test') }}"
+                    APP_VERSION: "{{ app_version }}"
                   depends_on:
                     db:
                       condition: service_healthy
@@ -85,7 +105,7 @@
 
         - name: Start FiveOps application
           community.docker.docker_compose_v2:
-            project_src: /opt/fiveops
+            project_src: "{{ app_dir }}"
             files:
               - compose.yml
             state: present

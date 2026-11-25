@@ -4,11 +4,12 @@ pipeline {
 
     options {
         timestamps()
-        timeout(time: 20, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
     }
 
     environment {
         IMAGE_NAME = 'support-app'
+        GHCR_OWNER = 'fiveops-bcu'
     }
 
     stages {
@@ -51,6 +52,7 @@ pipeline {
             steps {
                 script {
                     env.IMAGE_TAG = env.GIT_COMMIT.take(7)
+                    env.GHCR_IMAGE = "ghcr.io/${GHCR_OWNER}/${IMAGE_NAME}:${IMAGE_TAG}"
                 }
 
                 sh '''
@@ -62,6 +64,7 @@ pipeline {
                 echo "Built image: ${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
+
         stage('Trivy Image Scan') {
             steps {
                 sh 'trivy --version'
@@ -70,43 +73,55 @@ pipeline {
             }
         }
 
-
-        stage('Transfer Image to Test VM') {
+        stage('Publish Docker Image to GHCR') {
             when {
-                expression {
-                    !env.CHANGE_ID &&
-                    (env.BRANCH_NAME == 'main' ||
-                     env.GIT_BRANCH == 'origin/main')
+                allOf {
+                    branch 'main'
+                    not {
+                        changeRequest()
+                    }
                 }
             }
+
             steps {
                 withCredentials([
-                    sshUserPrivateKey(
-                        credentialsId: 'fiveops-test-ssh',
-                        keyFileVariable: 'SSH_KEY',
-                        usernameVariable: 'SSH_USER'
+                    usernamePassword(
+                        credentialsId: 'ghcr-push',
+                        usernameVariable: 'GHCR_USER',
+                        passwordVariable: 'GHCR_TOKEN'
                     )
                 ]) {
-                    sh '''#!/usr/bin/env bash
-set -euo pipefail
-docker save "${IMAGE_NAME}:${IMAGE_TAG}" | ssh \
-  -i "$SSH_KEY" \
-  -o IdentitiesOnly=yes \
-  -o StrictHostKeyChecking=yes \
-  -o BatchMode=yes \
-  "$SSH_USER@192.168.174.129" 'docker load'
-'''
+                    sh '''
+                        set +x
+                        set -e
+
+                        trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+
+                        echo "$GHCR_TOKEN" | docker login ghcr.io \
+                            --username "$GHCR_USER" \
+                            --password-stdin
+
+                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} "$GHCR_IMAGE"
+                        docker push "$GHCR_IMAGE"
+
+                        docker image inspect "$GHCR_IMAGE" \
+                            --format='{{range .RepoDigests}}{{println .}}{{end}}' \
+                            | head -n 1 > security-reports/image-digest.txt
+                    '''
+
+                    archiveArtifacts(
+                        artifacts: 'security-reports/image-digest.txt',
+                        fingerprint: true
+                    )
                 }
             }
         }
 
-
-        stage('Deploy to Test VM') {
+        stage('Deploy to TEST') {
             when {
-                expression {
-                    !env.CHANGE_ID &&
-                    (env.BRANCH_NAME == 'main' ||
-                     env.GIT_BRANCH == 'origin/main')
+                allOf {
+                    branch 'main'
+                    not { changeRequest() }
                 }
             }
             steps {
@@ -129,35 +144,87 @@ docker save "${IMAGE_NAME}:${IMAGE_TAG}" | ssh \
 set -euo pipefail
 set +x
 umask 077
-
 VAULT_FILE=$(mktemp)
 SUDO_FILE=$(mktemp)
 trap 'rm -f "$VAULT_FILE" "$SUDO_FILE"' EXIT
-
-printf '%s\\n' "$VAULT_PASSWORD" > "$VAULT_FILE"
-printf '%s\\n' "$SUDO_PASSWORD" > "$SUDO_FILE"
-
+printf '%s\n' "$VAULT_PASSWORD" > "$VAULT_FILE"
+printf '%s\n' "$SUDO_PASSWORD" > "$SUDO_FILE"
 export ANSIBLE_HOST_KEY_CHECKING=True
 
 ansible-playbook \
-  -i /var/lib/jenkins/.config/fiveops/test.ini \
-  ansible/playbooks/deploy.yml \
-  --private-key "$SSH_KEY" \
-  --vault-password-file "$VAULT_FILE" \
-  --become-password-file "$SUDO_FILE" \
-  -e @/var/lib/jenkins/.config/fiveops/test-secrets.yml \
-  -e "app_image=${IMAGE_NAME}:${IMAGE_TAG}" \
-  -e "app_version=${IMAGE_TAG}"
+    -i /var/lib/jenkins/.config/fiveops/test.ini \
+    ansible/playbooks/deploy.yml \
+    -u "$SSH_USER" \
+    --private-key "$SSH_KEY" \
+    --vault-password-file "$VAULT_FILE" \
+    --become-password-file "$SUDO_FILE" \
+    -e @/var/lib/jenkins/.config/fiveops/test-secrets.yml \
+    -e "app_image=${GHCR_IMAGE}" \
+    -e "app_version=${IMAGE_TAG}"
 '''
                 }
             }
         }
 
+        stage('Production Approval') {
+            when {
+                allOf {
+                    branch 'main'
+                    not {
+                        changeRequest()
+                    }
+                }
+            }
+
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    input(
+                        message: "TEST deployment completed. Approve production deployment of ${GHCR_IMAGE}?",
+                        ok: 'Approve Production Deployment'
+                    )
+                }
+            }
+        }
+
+        stage('Deploy to PROD') {
+            when {
+                allOf {
+                    branch 'main'
+                    not {
+                        changeRequest()
+                    }
+                }
+            }
+
+            steps {
+                sshagent(credentials: ['ansible-prod-ssh']) {
+                    withCredentials([
+                        file(
+                            credentialsId: 'ansible-vault-prod',
+                            variable: 'ANSIBLE_VAULT_FILE'
+                        )
+                    ]) {
+                        sh '''
+                            set -e
+
+                            ansible-playbook \
+                                -i ansible/inventory/prod/hosts.ini \
+                                ansible/playbooks/deploy-prod.yml \
+                                --vault-password-file "$ANSIBLE_VAULT_FILE" \
+                                -e "app_image=${GHCR_IMAGE}"
+                        '''
+                    }
+                }
+            }
+        }
     }
 
     post {
         always {
-            archiveArtifacts artifacts: 'security-reports/*.json', allowEmptyArchive: true
+            archiveArtifacts(
+                artifacts: 'security-reports/*.json,security-reports/*.txt',
+                allowEmptyArchive: true
+            )
 
             script {
                 if (fileExists('reports/junit.xml')) {
