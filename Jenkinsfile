@@ -70,6 +70,89 @@ pipeline {
             }
         }
 
+
+        stage('Transfer Image to Test VM') {
+            when {
+                expression {
+                    !env.CHANGE_ID &&
+                    (env.BRANCH_NAME == 'main' ||
+                     env.GIT_BRANCH == 'origin/main')
+                }
+            }
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'fiveops-test-ssh',
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    )
+                ]) {
+                    sh '''#!/usr/bin/env bash
+set -euo pipefail
+docker save "${IMAGE_NAME}:${IMAGE_TAG}" | ssh \
+  -i "$SSH_KEY" \
+  -o IdentitiesOnly=yes \
+  -o StrictHostKeyChecking=yes \
+  -o BatchMode=yes \
+  "$SSH_USER@192.168.174.129" 'docker load'
+'''
+                }
+            }
+        }
+
+
+        stage('Deploy to Test VM') {
+            when {
+                expression {
+                    !env.CHANGE_ID &&
+                    (env.BRANCH_NAME == 'main' ||
+                     env.GIT_BRANCH == 'origin/main')
+                }
+            }
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'fiveops-test-ssh',
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    ),
+                    string(
+                        credentialsId: 'fiveops-test-vault-password',
+                        variable: 'VAULT_PASSWORD'
+                    ),
+                    string(
+                        credentialsId: 'fiveops-test-sudo-password',
+                        variable: 'SUDO_PASSWORD'
+                    )
+                ]) {
+                    sh '''#!/usr/bin/env bash
+set -euo pipefail
+set +x
+umask 077
+
+VAULT_FILE=$(mktemp)
+SUDO_FILE=$(mktemp)
+trap 'rm -f "$VAULT_FILE" "$SUDO_FILE"' EXIT
+
+printf '%s\\n' "$VAULT_PASSWORD" > "$VAULT_FILE"
+printf '%s\\n' "$SUDO_PASSWORD" > "$SUDO_FILE"
+
+export ANSIBLE_HOST_KEY_CHECKING=True
+
+ansible-playbook \
+  -i /var/lib/jenkins/.config/fiveops/test.ini \
+  ansible/playbooks/deploy.yml \
+  --private-key "$SSH_KEY" \
+  --vault-password-file "$VAULT_FILE" \
+  --become-password-file "$SUDO_FILE" \
+  -e @/var/lib/jenkins/.config/fiveops/test-secrets.yml \
+  -e "app_image=${IMAGE_NAME}:${IMAGE_TAG}" \
+  -e "app_version=${IMAGE_TAG}"
+'''
+                }
+            }
+        }
+
     }
 
     post {

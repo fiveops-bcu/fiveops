@@ -39,14 +39,14 @@
                 retries: 15
 
             app:
-              image: fiveops-support:test
+              image: "{{ app_image | default('fiveops-support:test') }}"
               pull_policy: never
               restart: unless-stopped
               ports:
                 - "8000:8000"
               environment:
                 DATABASE_URL: "postgresql+psycopg://fiveops:{{ db_password }}@db:5432/fiveops"
-                APP_VERSION: "test"
+                APP_VERSION: "{{ app_version | default('test') }}"
               depends_on:
                 db:
                   condition: service_healthy
