@@ -86,7 +86,7 @@ pipeline {
             steps {
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'ghcr-publish',
+                        credentialsId: 'ghcr-push',
                         usernameVariable: 'GHCR_USER',
                         passwordVariable: 'GHCR_TOKEN'
                     )
@@ -121,20 +121,47 @@ pipeline {
             when {
                 allOf {
                     branch 'main'
-                    not {
-                        changeRequest()
-                    }
+                    not { changeRequest() }
                 }
             }
-
             steps {
-                sshagent(credentials: ['ansible-test-ssh']) {
-                    sh '''
-                        ansible-playbook \
-                            -i ansible/inventory/test/hosts.ini \
-                            ansible/playbooks/deploy.yml \
-                            -e "app_image=${GHCR_IMAGE}"
-                    '''
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'fiveops-test-ssh',
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    ),
+                    string(
+                        credentialsId: 'fiveops-test-vault-password',
+                        variable: 'VAULT_PASSWORD'
+                    ),
+                    string(
+                        credentialsId: 'fiveops-test-sudo-password',
+                        variable: 'SUDO_PASSWORD'
+                    )
+                ]) {
+                    sh '''#!/usr/bin/env bash
+set -euo pipefail
+set +x
+umask 077
+VAULT_FILE=$(mktemp)
+SUDO_FILE=$(mktemp)
+trap 'rm -f "$VAULT_FILE" "$SUDO_FILE"' EXIT
+printf '%s\n' "$VAULT_PASSWORD" > "$VAULT_FILE"
+printf '%s\n' "$SUDO_PASSWORD" > "$SUDO_FILE"
+export ANSIBLE_HOST_KEY_CHECKING=True
+
+ansible-playbook \
+    -i /var/lib/jenkins/.config/fiveops/test.ini \
+    ansible/playbooks/deploy.yml \
+    -u "$SSH_USER" \
+    --private-key "$SSH_KEY" \
+    --vault-password-file "$VAULT_FILE" \
+    --become-password-file "$SUDO_FILE" \
+    -e @/var/lib/jenkins/.config/fiveops/test-secrets.yml \
+    -e "app_image=${GHCR_IMAGE}" \
+    -e "app_version=${IMAGE_TAG}"
+'''
                 }
             }
         }
