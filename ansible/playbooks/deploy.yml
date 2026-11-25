@@ -14,65 +14,160 @@
         owner: root
         group: root
         mode: "0755"
+    - name: Check for existing Compose configuration
+      ansible.builtin.stat:
+        path: "{{ app_dir }}/compose.yml"
+      register: previous_compose
 
-    - name: Configure PostgreSQL and application
+    - name: Check existing application health
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8000/health
+        status_code: 200
+        timeout: 5
+      register: previous_health
+      failed_when: false
+      changed_when: false
+
+    - name: Save last known-good Compose configuration
       ansible.builtin.copy:
-        dest: "{{ app_dir }}/compose.yml"
+        src: "{{ app_dir }}/compose.yml"
+        dest: "{{ app_dir }}/compose.last_good.yml"
+        remote_src: true
         owner: root
         group: root
         mode: "0600"
-        content: |
-          services:
-            db:
-              image: postgres:17
-              restart: unless-stopped
-              environment:
-                POSTGRES_DB: fiveops
-                POSTGRES_USER: fiveops
-                POSTGRES_PASSWORD: "{{ db_password }}"
-              volumes:
-                - pgdata:/var/lib/postgresql/data
-              healthcheck:
-                test: ["CMD-SHELL", "pg_isready -U fiveops -d fiveops"]
-                interval: 5s
-                timeout: 5s
-                retries: 15
-
-            app:
-              image: "{{ app_image | default('fiveops-support:test') }}"
-              pull_policy: never
-              restart: unless-stopped
-              ports:
-                - "8000:8000"
-              environment:
-                DATABASE_URL: "postgresql+psycopg://fiveops:{{ db_password }}@db:5432/fiveops"
-                APP_VERSION: "{{ app_version | default('test') }}"
-              depends_on:
-                db:
-                  condition: service_healthy
-
-          volumes:
-            pgdata:
+      when:
+        - previous_compose.stat.exists
+        - previous_health.status | default(0) == 200
       no_log: true
+    - name: Deploy application with rollback protection
+      block:
+        - name: Configure PostgreSQL and application
+          ansible.builtin.copy:
+            dest: "{{ app_dir }}/compose.yml"
+            owner: root
+            group: root
+            mode: "0600"
+            content: |
+              services:
+                db:
+                  image: postgres:17
+                  restart: unless-stopped
+                  environment:
+                    POSTGRES_DB: fiveops
+                    POSTGRES_USER: fiveops
+                    POSTGRES_PASSWORD: "{{ db_password }}"
+                  volumes:
+                    - pgdata:/var/lib/postgresql/data
+                  healthcheck:
+                    test: ["CMD-SHELL", "pg_isready -U fiveops -d fiveops"]
+                    interval: 5s
+                    timeout: 5s
+                    retries: 15
 
-    - name: Start FiveOps application
-      community.docker.docker_compose_v2:
-        project_src: /opt/fiveops
-        files:
-          - compose.yml
-        state: present
-        pull: missing
-        recreate: auto
-        wait: true
-        wait_timeout: 120
+                app:
+                  image: "{{ app_image | default('fiveops-support:test') }}"
+                  pull_policy: never
+                  restart: unless-stopped
+                  ports:
+                    - "8000:8000"
+                  environment:
+                    DATABASE_URL: "postgresql+psycopg://fiveops:{{ db_password }}@db:5432/fiveops"
+                    APP_VERSION: "{{ app_version | default('test') }}"
+                  depends_on:
+                    db:
+                      condition: service_healthy
 
-    - name: Verify application health
-      ansible.builtin.uri:
-        url: http://127.0.0.1:8000/health
-        method: GET
-        status_code: 200
-        return_content: true
-      register: health_result
-      until: health_result.status == 200
-      retries: 15
-      delay: 4
+              volumes:
+                pgdata:
+          no_log: true
+
+        - name: Start FiveOps application
+          community.docker.docker_compose_v2:
+            project_src: /opt/fiveops
+            files:
+              - compose.yml
+            state: present
+            pull: missing
+            recreate: auto
+            wait: true
+            wait_timeout: 120
+
+        - name: Verify application health
+          ansible.builtin.uri:
+            url: http://127.0.0.1:8000/health
+            method: GET
+            status_code: 200
+            return_content: true
+          register: health_result
+          until: health_result.status == 200
+          retries: 15
+          delay: 4
+        - name: Record last successful version
+          ansible.builtin.copy:
+            dest: "{{ app_dir }}/last_good_tag"
+            content: "{{ app_version | default('test') }}\n"
+            owner: root
+            group: root
+            mode: "0600"
+        - name: Log successful deployment
+          ansible.builtin.lineinfile:
+            path: "{{ app_dir }}/releases.log"
+            line: "DEPLOY {{ app_version | default('test') }} SUCCESS"
+            create: true
+            owner: root
+            group: root
+            mode: "0600"
+
+      rescue:
+        - name: Stop if no healthy previous release exists
+          ansible.builtin.fail:
+            msg: "Deployment failed. No healthy previous release is available for rollback."
+          when: >
+            not (
+              previous_compose.stat.exists and
+              (previous_health.status | default(0) == 200)
+            )
+
+        - name: Restore last known-good configuration
+          ansible.builtin.copy:
+            src: "{{ app_dir }}/compose.last_good.yml"
+            dest: "{{ app_dir }}/compose.yml"
+            remote_src: true
+            owner: root
+            group: root
+            mode: "0600"
+          no_log: true
+
+        - name: Restart previous application version
+          community.docker.docker_compose_v2:
+            project_src: "{{ app_dir }}"
+            files:
+              - compose.yml
+            state: present
+            pull: missing
+            recreate: auto
+            wait: true
+            wait_timeout: 120
+
+        - name: Verify rollback health
+          ansible.builtin.uri:
+            url: http://127.0.0.1:8000/health
+            status_code: 200
+          register: rollback_health
+          until: rollback_health.status | default(0) == 200
+          retries: 15
+          delay: 4
+
+        - name: Log successful rollback
+          ansible.builtin.lineinfile:
+            path: "{{ app_dir }}/releases.log"
+            line: "ROLLBACK {{ app_version | default('test') }} FAILED - PREVIOUS_VERSION RESTORED"
+            create: true
+            owner: root
+            group: root
+            mode: "0600"
+
+        - name: Report original deployment failure
+          ansible.builtin.fail:
+            msg: "New deployment failed. Previous healthy version restored successfully."
