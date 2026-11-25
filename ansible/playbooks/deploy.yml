@@ -1,3 +1,4 @@
+
 ---
 - name: Deploy FiveOps application to test
   hosts: app
@@ -7,6 +8,14 @@
     app_dir: /opt/fiveops
 
   tasks:
+    - name: Validate application image variable
+      ansible.builtin.assert:
+        that:
+          - app_image is defined
+          - app_image | length > 0
+          - app_image is match('^ghcr\.io/fiveops-bcu/support-app:[a-f0-9]{7,40}$')
+        fail_msg: "A valid GHCR image reference must be provided by Jenkins."
+
     - name: Create application directory
       ansible.builtin.file:
         path: "{{ app_dir }}"
@@ -39,8 +48,8 @@
                 retries: 15
 
             app:
-              image: fiveops-support:test
-              pull_policy: never
+              image: "{{ app_image }}"
+              pull_policy: always
               restart: unless-stopped
               ports:
                 - "8000:8000"
@@ -57,11 +66,11 @@
 
     - name: Start FiveOps application
       community.docker.docker_compose_v2:
-        project_src: /opt/fiveops
+        project_src: "{{ app_dir }}"
         files:
           - compose.yml
         state: present
-        pull: missing
+        pull: always
         recreate: auto
         wait: true
         wait_timeout: 120
