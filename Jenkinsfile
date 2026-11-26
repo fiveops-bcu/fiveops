@@ -21,9 +21,35 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        // Diagnose the actual Jenkins execution environment
+        stage('Check Gitleaks Environment') {
+            steps {
+                sh '''
+                    echo "=== JENKINS ENVIRONMENT ==="
+                    hostname
+                    whoami
+                    echo "PATH=$PATH"
+
+                    echo "=== GITLEAKS LOCATION ==="
+                    command -v gitleaks || true
+                    ls -l /usr/local/bin/gitleaks || true
+
+                    echo "=== GITLEAKS VERSION ==="
+                    if [ -x /usr/local/bin/gitleaks ]; then
+                        /usr/local/bin/gitleaks version
+                    elif command -v gitleaks >/dev/null 2>&1; then
+                        gitleaks version
+                    else
+                        echo "Gitleaks is not available in this Jenkins environment"
+                    fi
+                '''
             }
         }
 
@@ -31,9 +57,20 @@ pipeline {
             steps {
                 sh 'rm -rf security-reports'
                 sh 'mkdir -p security-reports'
-                sh 'test $(git rev-parse --is-shallow-repository) = false'
-                sh 'gitleaks version'
-                sh 'gitleaks git . --log-opts=--all --redact=100 --report-format json --report-path security-reports/gitleaks.json --exit-code 1'
+                sh 'test "$(git rev-parse --is-shallow-repository)" = false'
+
+                withEnv(['PATH+GITLEAKS=/usr/local/bin']) {
+                    sh 'gitleaks version'
+
+                    sh '''
+                        gitleaks git . \
+                            --log-opts=--all \
+                            --redact=100 \
+                            --report-format json \
+                            --report-path security-reports/gitleaks.json \
+                            --exit-code 1
+                    '''
+                }
             }
         }
 
@@ -51,7 +88,14 @@ pipeline {
         stage('Bandit Security Scan') {
             steps {
                 sh 'bandit --version'
-                sh 'bandit -r app/ -f json -o security-reports/bandit.json --exit-zero'
+
+                sh '''
+                    bandit -r app/ \
+                        -f json \
+                        -o security-reports/bandit.json \
+                        --exit-zero
+                '''
+
                 sh 'bandit -r app/ -lll'
             }
         }
@@ -60,24 +104,40 @@ pipeline {
             steps {
                 script {
                     env.IMAGE_TAG = env.GIT_COMMIT.take(7)
-                    env.GHCR_IMAGE = "ghcr.io/${GHCR_OWNER}/${IMAGE_NAME}:${IMAGE_TAG}"
+                    env.GHCR_IMAGE = "ghcr.io/${env.GHCR_OWNER}/${env.IMAGE_NAME}:${env.IMAGE_TAG}"
                 }
 
                 sh '''
                     docker build \
-                        -t ${IMAGE_NAME}:${IMAGE_TAG} \
+                        -t "${IMAGE_NAME}:${IMAGE_TAG}" \
                         .
                 '''
 
                 echo "Built image: ${IMAGE_NAME}:${IMAGE_TAG}"
+                echo "GHCR image: ${GHCR_IMAGE}"
             }
         }
 
         stage('Trivy Image Scan') {
             steps {
                 sh 'trivy --version'
-                sh 'trivy image --severity HIGH,CRITICAL --format json --output security-reports/trivy.json --exit-code 0 ${IMAGE_NAME}:${IMAGE_TAG}'
-                sh 'trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 ${IMAGE_NAME}:${IMAGE_TAG}'
+
+                sh '''
+                    trivy image \
+                        --severity HIGH,CRITICAL \
+                        --format json \
+                        --output security-reports/trivy.json \
+                        --exit-code 0 \
+                        "${IMAGE_NAME}:${IMAGE_TAG}"
+                '''
+
+                sh '''
+                    trivy image \
+                        --severity HIGH,CRITICAL \
+                        --ignore-unfixed \
+                        --exit-code 1 \
+                        "${IMAGE_NAME}:${IMAGE_TAG}"
+                '''
             }
         }
 
@@ -100,21 +160,27 @@ pipeline {
                     )
                 ]) {
                     sh '''
+                        set -eu
                         set +x
-                        set -e
 
-                        trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+                        export DOCKER_CONFIG="$(mktemp -d)"
+                        trap 'docker logout ghcr.io >/dev/null 2>&1 || true; rm -rf "$DOCKER_CONFIG"' EXIT
 
-                        echo "$GHCR_TOKEN" | docker login ghcr.io \
+                        printf '%s' "$GHCR_TOKEN" | docker login ghcr.io \
                             --username "$GHCR_USER" \
                             --password-stdin
 
-                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} "$GHCR_IMAGE"
+                        docker tag \
+                            "${IMAGE_NAME}:${IMAGE_TAG}" \
+                            "$GHCR_IMAGE"
+
                         docker push "$GHCR_IMAGE"
 
                         docker image inspect "$GHCR_IMAGE" \
                             --format='{{range .RepoDigests}}{{println .}}{{end}}' \
                             | head -n 1 > security-reports/image-digest.txt
+
+                        test -s security-reports/image-digest.txt
                     '''
 
                     archiveArtifacts(
@@ -129,9 +195,12 @@ pipeline {
             when {
                 allOf {
                     branch 'main'
-                    not { changeRequest() }
+                    not {
+                        changeRequest()
+                    }
                 }
             }
+
             steps {
                 withCredentials([
                     sshUserPrivateKey(
@@ -149,27 +218,31 @@ pipeline {
                     )
                 ]) {
                     sh '''#!/usr/bin/env bash
-set -euo pipefail
-set +x
-umask 077
-VAULT_FILE=$(mktemp)
-SUDO_FILE=$(mktemp)
-trap 'rm -f "$VAULT_FILE" "$SUDO_FILE"' EXIT
-printf '%s\n' "$VAULT_PASSWORD" > "$VAULT_FILE"
-printf '%s\n' "$SUDO_PASSWORD" > "$SUDO_FILE"
-export ANSIBLE_HOST_KEY_CHECKING=True
+                        set -euo pipefail
+                        set +x
+                        umask 077
 
-ansible-playbook \
-    -i /var/lib/jenkins/.config/fiveops/test.ini \
-    ansible/playbooks/deploy.yml \
-    -u "$SSH_USER" \
-    --private-key "$SSH_KEY" \
-    --vault-password-file "$VAULT_FILE" \
-    --become-password-file "$SUDO_FILE" \
-    -e @/var/lib/jenkins/.config/fiveops/test-secrets.yml \
-    -e "app_image=${GHCR_IMAGE}" \
-    -e "app_version=${IMAGE_TAG}"
-'''
+                        VAULT_FILE=$(mktemp)
+                        SUDO_FILE=$(mktemp)
+
+                        trap 'rm -f "$VAULT_FILE" "$SUDO_FILE"' EXIT
+
+                        printf '%s\\n' "$VAULT_PASSWORD" > "$VAULT_FILE"
+                        printf '%s\\n' "$SUDO_PASSWORD" > "$SUDO_FILE"
+
+                        export ANSIBLE_HOST_KEY_CHECKING=True
+
+                        ansible-playbook \
+                            -i /var/lib/jenkins/.config/fiveops/test.ini \
+                            ansible/playbooks/deploy.yml \
+                            -u "$SSH_USER" \
+                            --private-key "$SSH_KEY" \
+                            --vault-password-file "$VAULT_FILE" \
+                            --become-password-file "$SUDO_FILE" \
+                            -e @/var/lib/jenkins/.config/fiveops/test-secrets.yml \
+                            -e "app_image=${GHCR_IMAGE}" \
+                            -e "app_version=${IMAGE_TAG}"
+                    '''
                 }
             }
         }
@@ -178,7 +251,9 @@ ansible-playbook \
             when {
                 allOf {
                     branch 'main'
-                    expression { params.ENABLE_PRODUCTION_DEPLOY }
+                    expression {
+                        params.ENABLE_PRODUCTION_DEPLOY
+                    }
                     not {
                         changeRequest()
                     }
@@ -199,7 +274,9 @@ ansible-playbook \
             when {
                 allOf {
                     branch 'main'
-                    expression { params.ENABLE_PRODUCTION_DEPLOY }
+                    expression {
+                        params.ENABLE_PRODUCTION_DEPLOY
+                    }
                     not {
                         changeRequest()
                     }
@@ -215,7 +292,10 @@ ansible-playbook \
                         )
                     ]) {
                         sh '''
-                            set -e
+                            set -eu
+                            set +x
+
+                            export ANSIBLE_HOST_KEY_CHECKING=True
 
                             ansible-playbook \
                                 -i ansible/inventory/prod/hosts.ini \
