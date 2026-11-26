@@ -1,0 +1,21 @@
+
+groups:
+  - name: fiveops-alerts
+    rules:
+      - alert: ServerDown
+        expr: up{job="fiveops-servers"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "FiveOps server is unavailable"
+          description: "Node Exporter on {{ $labels.instance }} has been unreachable for over one minute."
+
+      - alert: ApplicationDown
+        expr: probe_success{job="fiveops-application"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "FiveOps application is unavailable"
+          description: "Application health check failed for {{ $labels.instance }} for over one minute."
