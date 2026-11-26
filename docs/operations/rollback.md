@@ -75,6 +75,3 @@ The rollback procedure is documented but has not yet been automated or tested.
 
 
 Automatic rollback will require integration with Jenkins, Ansible and the monitoring system.
-
-
-
