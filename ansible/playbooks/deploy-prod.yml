@@ -1,0 +1,93 @@
+---
+- name: Deploy FiveOps application to production
+  hosts: app
+  become: true
+
+  vars:
+    app_dir: /opt/fiveops
+    app_version: production
+
+  tasks:
+    - name: Validate production image
+      ansible.builtin.assert:
+        that:
+          - app_image is defined
+          - app_image is match('^ghcr\.io/fiveops-bcu/support-app:[a-f0-9]{7,40}$')
+        fail_msg: "A valid production image reference is required."
+
+    - name: Validate production database password
+      ansible.builtin.assert:
+        that:
+          - db_password is defined
+          - db_password | length > 0
+        fail_msg: "Production database password is not configured."
+      no_log: true
+
+    - name: Create application directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Configure production application
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/compose.yml"
+        owner: root
+        group: root
+        mode: "0600"
+        content: |
+          services:
+            db:
+              image: postgres:17
+              restart: unless-stopped
+              environment:
+                POSTGRES_DB: fiveops
+                POSTGRES_USER: fiveops
+                POSTGRES_PASSWORD: "{{ db_password }}"
+              volumes:
+                - pgdata:/var/lib/postgresql/data
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U fiveops -d fiveops"]
+                interval: 5s
+                timeout: 5s
+                retries: 15
+
+            app:
+              image: "{{ app_image }}"
+              pull_policy: always
+              restart: unless-stopped
+              ports:
+                - "8000:8000"
+              environment:
+                DATABASE_URL: "postgresql+psycopg://fiveops:{{ db_password }}@db:5432/fiveops"
+                APP_VERSION: "{{ app_version }}"
+              depends_on:
+                db:
+                  condition: service_healthy
+
+          volumes:
+            pgdata:
+      no_log: true
+
+    - name: Start production application
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_dir }}"
+        files:
+          - compose.yml
+        state: present
+        pull: always
+        recreate: auto
+        wait: true
+        wait_timeout: 120
+
+    - name: Verify production application health
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8000/health
+        method: GET
+        status_code: 200
+      register: health_result
+      until: health_result.status == 200
+      retries: 15
+      delay: 4
