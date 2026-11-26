@@ -3,6 +3,10 @@ FROM python:3.12-slim
 LABEL org.opencontainers.image.source="https://github.com/fiveops-bcu/fiveops"
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /srv
+# Patch vulnerable Debian system packages
+RUN apt-get update && \
+    apt-get install -y --only-upgrade libzstd1 zlib1g && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install packages first, so Docker can reuse this layer
 COPY requirements.txt .
