@@ -73,3 +73,17 @@ but does not count towards the three Target 07 notification
 trials because Teams notification delivery was not verified.
 
 Evidence: Aissatou_Unexpected_Application_Interruption.png
+
+## Teams Notification Configuration Restriction
+
+On 27 November 2026, the Power Automate method was attempted following coordination with Yasin.
+
+The Microsoft Teams connection was established successfully and the "Send webhook alerts to a channel" workflow was created.
+
+However, the workflow was suspended because the university's Tenant-Wide-DLP policy restricts the TeamsWebhookRequestReceived API.
+
+This organisational security restriction prevented the webhook notification integration from being completed.
+
+The existing Prometheus, Grafana and Alertmanager monitoring services remain unchanged.
+
+An alternative approved notification method is awaiting agreement with the team. Target 07 alert-delivery testing remains pending.
