@@ -51,3 +51,25 @@ Required: Each rollback must complete within ten minutes.
 Live monitoring has been successfully verified.
 Alert delivery, rollback, database recovery and
 scheduled shutdown results remain pending.
+
+## Unexpected Application Interruption - 27 November 2026
+
+An unexpected application interruption was reported during
+deployment verification.
+
+- Failed health check observed: 17:51:45 UTC.
+- Successful health check observed: 17:52:00 UTC.
+- ApplicationDown alert entered the pending state.
+- No firing alert was observed.
+- All four monitoring containers remained running.
+- Findings were communicated to Abdi.
+
+The interruption appears to have been shorter than the
+configured one-minute alert threshold. The exact outage
+duration could not be established from the query intervals.
+
+This incident demonstrates successful failure detection
+but does not count towards the three Target 07 notification
+trials because Teams notification delivery was not verified.
+
+Evidence: Aissatou_Unexpected_Application_Interruption.png
