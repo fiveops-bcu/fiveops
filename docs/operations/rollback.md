@@ -1,77 +1,193 @@
+# FiveOps Rollback and Recovery Plan
 
+## Purpose
 
-\# FiveOps Rollback and Recovery Plan
+This document describes the automated application
+rollback mechanism, operational recovery procedure
+and verified TEST recovery evaluation.
 
+## Failure Detection
 
+Jenkins and Ansible verify application health and
+the expected application version during deployment.
 
-\## Purpose
+Prometheus and Alertmanager provide independent
+monitoring and alert notifications.
 
-This document outlines the proposed recovery procedure if a deployment causes application failure or instability.
+Formal alert notification timing is evaluated
+separately under Evaluation Target 07.
 
+## Automated Rollback Implementation
 
+The shared Ansible deployment playbook implements
+automatic rollback using a block and rescue structure.
 
-\## Failure Detection
+Before deployment, Ansible checks the existing
+application health and preserves the healthy
+Docker Compose configuration.
 
-The team will use Prometheus monitoring to identify server availability problems.
+If deployment validation fails, Ansible:
 
+1. Checks that a healthy previous release exists.
+2. Restores the last known-good Compose configuration.
+3. Restarts the previous application release.
+4. Verifies application health.
+5. Records the rollback in the release history.
+6. Reports the original deployment as failed.
 
+Immutable GHCR image digests support reproducible
+release restoration.
 
-A critical alert is configured when a monitored server becomes unreachable for more than one minute.
+Production integration was merged through PR #46.
+Production runtime recovery remains untested.
 
+## Controlled TEST Recovery Evaluation
 
+Date: 27 November 2026
 
-\## Rollback Procedure
+Evaluation Target 02 requires three successful
+application rollback drills, each under 10 minutes.
 
-1\. Identify the failed deployment using Jenkins logs.
+The tests used an isolated copy of deploy.yml with
+a deliberate failure injected after successful
+candidate version verification.
 
-2\. Stop further production deployments.
+The original Ansible rescue mechanism was unchanged.
 
-3\. Identify the last successfully tested Docker image.
+A protected configuration and PostgreSQL backup
+was created before testing.
 
-4\. Obtain approval before restoring the previous version.
+Competing deployments were paused in coordination
+with the CI/CD engineer.
 
-5\. Redeploy the previous working image using the team's approved deployment process.
+### Release Configuration
 
-6\. Verify that the application is responding correctly.
+- Environment: TEST
+- Original healthy release: 55b27ab
+- Controlled deployment candidate: 737512f
+- Expected recovered release: 55b27ab
 
-7\. Check monitoring metrics and alert status.
+### Jenkins Evaluation Results
 
-8\. Record the incident and recovery actions.
+Diagnostic job: FiveOps-TEST-Rollback-Drill
 
+| Build | Completion UTC | Duration | Result |
+|---|---|---:|---|
+| #1 | 21:26:19 | 15 seconds | PASS |
+| #2 | 21:33:03 | 15 seconds | PASS |
+| #3 | 21:36:04 | 14 seconds | PASS |
 
+- Successful drills: 3/3
+- Success rate: 100%
+- Average duration: 14.67 seconds
+- Slowest duration: 15 seconds
+- Maximum permitted duration: 600 seconds
+- Evaluation Target 02: PASS
 
-\## Recovery Verification
+All three diagnostic Jenkins builds succeeded.
 
-After rollback, the team should confirm:
+Ansible returned exit code 2 as expected because
+the original deployment deliberately failed.
 
-\- The application is accessible.
+Jenkins reported diagnostic success only after
+verifying the automatic rollback and recovered state.
 
-\- The previous stable version is running.
+### Verified Recovery Conditions
 
-\- Monitoring shows the expected server status.
+All three drills confirmed:
 
-\- Application functionality has been checked.
+- Controlled deployment failure detected.
+- Automatic Ansible rollback executed.
+- Original application version restored.
+- Original immutable image reference restored.
+- Application health endpoint returned OK.
+- PostgreSQL was accepting connections.
+- Total drill duration remained under 10 minutes.
 
-\- The incident has been documented.
+### Independent Server Evidence
 
+Verified directly on TEST at 21:38:59 UTC.
 
+```text
+2026-11-27T21:26:18Z ROLLBACK 737512f FAILED - PREVIOUS_VERSION RESTORED
+2026-11-27T21:33:02Z ROLLBACK 737512f FAILED - PREVIOUS_VERSION RESTORED
+2026-11-27T21:36:03Z ROLLBACK 737512f FAILED - PREVIOUS_VERSION RESTORED
 
-\## Security Considerations
+LAST GOOD VERSION:
+55b27ab
 
-\- Only authorised team members should perform production rollback.
+APPLICATION HEALTH:
+{"status":"ok"}
 
-\- Credentials must not be stored in source code.
+APPLICATION VERSION:
+{"version":"55b27ab"}
 
-\- Deployment and rollback actions should be recorded.
+DATABASE STATUS:
+/var/run/postgresql:5432 - accepting connections
+```
 
-\- Production changes should follow the team's approval process.
+## Manual Recovery Procedure
 
+If automatic rollback fails:
 
+1. Identify the failure using Jenkins and server logs.
+2. Prevent competing deployments.
+3. Notify the responsible team members.
+4. Identify the verified last known-good release.
+5. Obtain the required environment-specific approval.
+6. Restore the verified configuration using the
+   approved recovery procedure.
+7. Verify application health, version, image reference
+   and database availability.
+8. Check monitoring and record the recovery outcome.
 
-\## Current Implementation Status
+Do not delete persistent database volumes during
+application rollback.
 
-The rollback procedure is documented but has not yet been automated or tested.
+## PostgreSQL Recovery
 
+Separate database recovery tests completed on
+27 November 2026 demonstrated successful logical
+backup restoration using a synthetic dataset.
 
+The populated database restoration took 874 ms.
 
-Automatic rollback will require integration with Jenkins, Ansible and the monitoring system.
+SHA-256 comparisons confirmed matching source
+and restored customer and ticket data.
+
+These results represent database restoration,
+not application rollback timing.
+
+## Security Considerations
+
+- Only authorised team members may perform recovery.
+- Credentials must not be committed to source control.
+- Recovery configuration backups must remain protected.
+- Production changes require the approved release process.
+- Diagnostic jobs must be disabled after evaluation,
+  while retaining build history for evidence.
+
+## Evaluation Limitations
+
+The measured durations include candidate deployment,
+controlled failure, automatic rollback and final
+verification using locally available container images.
+
+These tests do not measure exact application downtime,
+complete infrastructure disaster recovery or production
+recovery performance.
+
+Database availability was verified after each drill;
+continuous database availability was not measured.
+
+Production runtime validation, fresh infrastructure
+rebuild testing and formal alert notification timing
+remain outstanding.
+
+## Current Implementation Status
+
+- Automated application rollback: implemented.
+- TEST rollback evaluation: passed.
+- Evaluation Target 02: achieved.
+- Production integration: merged, runtime unverified.
+- Formal alert notification evaluation: outstanding.
