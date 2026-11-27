@@ -178,9 +178,9 @@ pipeline {
 
                         docker image inspect "$GHCR_IMAGE" \
                             --format='{{range .RepoDigests}}{{println .}}{{end}}' \
-                            | head -n 1 > security-reports/image-digest.txt
+                            | grep -Ex 'ghcr[.]io/fiveops-bcu/support-app@sha256:[a-f0-9]{64}$' > security-reports/image-digest.txt
 
-                        test -s security-reports/image-digest.txt
+                        test "$(wc -l < security-reports/image-digest.txt)" -eq 1
                     '''
 
                     archiveArtifacts(
@@ -232,6 +232,9 @@ pipeline {
 
                         export ANSIBLE_HOST_KEY_CHECKING=True
 
+                        APP_DIGEST=$(cat security-reports/image-digest.txt)
+                        test -n "$APP_DIGEST"
+
                         ansible-playbook \
                             -i /var/lib/jenkins/.config/fiveops/test.ini \
                             ansible/playbooks/deploy.yml \
@@ -241,7 +244,8 @@ pipeline {
                             --become-password-file "$SUDO_FILE" \
                             -e @/var/lib/jenkins/.config/fiveops/test-secrets.yml \
                             -e "app_image=${GHCR_IMAGE}" \
-                            -e "app_version=${IMAGE_TAG}"
+                            -e "app_version=${IMAGE_TAG}" \
+                            -e "app_digest=${APP_DIGEST}"
                     '''
                 }
             }
@@ -262,10 +266,21 @@ pipeline {
 
             steps {
                 timeout(time: 30, unit: 'MINUTES') {
-                    input(
-                        message: "TEST deployment completed. Approve production deployment of ${GHCR_IMAGE}?",
-                        ok: 'Approve Production Deployment'
-                    )
+                    script {
+                        def approver = input(
+                            message: "TEST deployment completed. Approve production deployment of ${GHCR_IMAGE}?",
+                            ok: 'Approve Production Deployment',
+                            submitter: 'yasin,Aissatou',
+                            submitterParameter: 'PRODUCTION_APPROVER'
+                        )
+
+                        if (!(approver in ['yasin', 'Aissatou'])) {
+                            error("Unauthorised production approver.")
+                        }
+
+                        env.PRODUCTION_APPROVER = approver.toString()
+                        echo "Production deployment approved by ${env.PRODUCTION_APPROVER}"
+                    }
                 }
             }
         }
@@ -284,29 +299,55 @@ pipeline {
             }
 
             steps {
-                sshagent(credentials: ['ansible-prod-ssh']) {
-                    withCredentials([
-                        file(
-                            credentialsId: 'ansible-vault-prod',
-                            variable: 'ANSIBLE_VAULT_FILE'
-                        )
-                    ]) {
-                        sh '''
-                            set -eu
-                            set +x
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'fiveops-prod-ssh',
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    ),
+                    string(
+                        credentialsId: 'fiveops-prod-vault-password',
+                        variable: 'VAULT_PASSWORD'
+                    ),
+                    string(
+                        credentialsId: 'fiveops-prod-sudo-password',
+                        variable: 'SUDO_PASSWORD'
+                    )
+                ]) {
+                    sh '''#!/usr/bin/env bash
+                        set -euo pipefail
+                        set +x
+                        umask 077
 
-                            export ANSIBLE_HOST_KEY_CHECKING=True
+                        VAULT_FILE=$(mktemp)
+                        SUDO_FILE=$(mktemp)
 
-                            ansible-playbook \
-                                -i ansible/inventory/prod/hosts.ini \
-                                ansible/playbooks/deploy-prod.yml \
-                                --vault-password-file "$ANSIBLE_VAULT_FILE" \
-                                -e "app_image=${GHCR_IMAGE}"
-                        '''
-                    }
+                        trap 'rm -f "$VAULT_FILE" "$SUDO_FILE"' EXIT
+
+                        printf '%s\\n' "$VAULT_PASSWORD" > "$VAULT_FILE"
+                        printf '%s\\n' "$SUDO_PASSWORD" > "$SUDO_FILE"
+
+                        export ANSIBLE_HOST_KEY_CHECKING=True
+
+                        APP_DIGEST=$(cat security-reports/image-digest.txt)
+                        test -n "$APP_DIGEST"
+
+                        ansible-playbook \
+                            -i /var/lib/jenkins/.config/fiveops/prod.ini \
+                            ansible/playbooks/deploy-prod.yml \
+                            -u "$SSH_USER" \
+                            --private-key "$SSH_KEY" \
+                            --vault-password-file "$VAULT_FILE" \
+                            --become-password-file "$SUDO_FILE" \
+                            -e @/var/lib/jenkins/.config/fiveops/prod-secrets.yml \
+                            -e "app_image=${GHCR_IMAGE}" \
+                            -e "app_version=${IMAGE_TAG}" \
+                            -e "app_digest=${APP_DIGEST}"
+                    '''
                 }
             }
         }
+
     }
 
     post {
