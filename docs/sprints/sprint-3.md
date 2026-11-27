@@ -27,23 +27,35 @@
 
 Approver names for each PR are recorded on GitHub; this table does not replace that record.
 
-## Open at 25 November, with owners
+## Update — 26 November (before the internal demo)
+
+| Deliverable | PR | Owner | Status |
+|---|---|---|---|
+| Production YAML formatting | [#39](https://github.com/fiveops-bcu/fiveops/pull/39) | Yasin | Merged 25 Nov |
+| Debian vulnerability remediation | [#40](https://github.com/fiveops-bcu/fiveops/pull/40) | Fadumo | Merged 26 Nov; final scan evidence needed |
+| Gitleaks diagnostics and GHCR publishing | [#41](https://github.com/fiveops-bcu/fiveops/pull/41) | Arkadiusz | Merged 26 Nov; full build evidence needed |
+| Monitoring configuration and recovery docs | [#42](https://github.com/fiveops-bcu/fiveops/pull/42) | Aissatou | Merged 26 Nov; live tests pending |
+| TEST deployment handover | [#43](https://github.com/fiveops-bcu/fiveops/pull/43) | Abdisalan | Merged 26 Nov; healthy TEST and matching digest reported; build reference pending |
+
+Reviewed main: `12e7093`. All eight evaluation targets remain pending. Task #18 is closed; tasks #16, #19, #20 and #21 remain open. No production release or completed rollback trial is asserted.
+
+## Open at 25 November, with owners (historical baseline; see 26 November update)
 
 | Gap | Why it matters | Owner | Issue |
 |---|---|---|---|
-| Monitoring stack is on branch `feature/operations-monitoring` with no PR | No monitoring in the demo without it (target 07) | Aissatou, reviewed by Fadumo | [#20](https://github.com/fiveops-bcu/fiveops/issues/20) |
+| Monitoring stack merged in PR #42; deployment and live validation pending | Monitoring must work in the demo (target 07) | Aissatou, reviewed by Fadumo | [#20](https://github.com/fiveops-bcu/fiveops/issues/20) |
 | Alertmanager receiver has no Teams destination | Alerts fire but reach nobody (target 07) | Aissatou | #20 |
 | PROD stage passes no database secret; `deploy-prod.yml` has no rollback and reports `production` instead of the commit | Production deployment will stop at validation; traceability breaks (targets 01, 02, 03) | Arkadiusz with Abdisalan | [#16](https://github.com/fiveops-bcu/fiveops/issues/16), [#18](https://github.com/fiveops-bcu/fiveops/issues/18) |
 | Jenkins posts no commit status to GitHub (HTTP 403 noted by Fadumo) | `protect-main` cannot require a passing build (target 06) | Fadumo with Arkadiusz; Yasin adds the required check | [#19](https://github.com/fiveops-bcu/fiveops/issues/19) |
 | Production approval has no `submitter` restriction | Any Jenkins user can approve (target 04) | Arkadiusz | #16 |
 | Rollback and idle Jenkins jobs not built | Targets 02 and 08 cannot be measured | Aissatou | #20 |
-| Scanner versions not installed or pinned on the Jenkins server | A rebuilt server breaks the pipeline (targets 05, 06) | Abdisalan | #18 |
+| Scanner installation reported; repeatable provisioning and successful Jenkins validation pending | A rebuilt server must reproduce the pipeline (targets 05, 06) | Abdisalan | #18 |
 | No measured results for targets 01–08 | Viva 2 needs real timings and evidence | All; Yasin coordinates | [#21](https://github.com/fiveops-bcu/fiveops/issues/21) |
 
 ## Replan to the internal demo (Sunday 29 November)
 
 1. **Thu 26 Nov:** monitoring PR opened and reviewed; PROD stage and approver fixes raised; Jenkins token for commit statuses created.
-2. **Fri 27 Nov, Integration Friday 14:00:** one change travels PR → Jenkins check → GHCR → TEST → approval → PROD. Record it in [`release-trace-target-01-03-06.md`](../evidence/release-trace-target-01-03-06.md).
+2. **Fri 27 Nov, Integration Friday 14:00:** one change travels PR → Jenkins check → GHCR → TEST. Proceed to approved PROD only if security, credentials and recovery acceptance are confirmed; otherwise document the limitation. Record it in [`release-trace-target-01-03-06.md`](../evidence/release-trace-target-01-03-06.md).
 3. **Sat 28 Nov:** Teams receiver live; three alert drills (07) and three rollback drills (02); idle job running (08).
 4. **Sun 29 Nov:** timed rehearsal in the Viva 2 order; complete this summary with the outcome.
 

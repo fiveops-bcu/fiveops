@@ -6,13 +6,13 @@
 
 **Team Leader:** Yasin Mohammed Miah
 
-**Status snapshot:** 25 November 2026; implementation is a coursework proof of concept, not a deployed production service.
+**Status snapshot:** 26 November 2026 (main at `12e7093`); implementation is a coursework proof of concept, not a deployed production service.
 
 ## What FiveOps is building
 
 FiveOps is a five-person DevOps team working on a small Flask support-ticket API and its delivery process. The expected flow is: a contributor pushes a branch → an independent reviewer checks the pull request → Jenkins runs tests and security gates → a versioned container image can be published and deployed → operational checks and evaluation evidence trace the result back to the change.
 
-**Implementation status is deliberately separated from the target architecture.** `main` now contains the application and tests, a Jenkinsfile with Gitleaks, Docker Compose tests (coverage gate 80%), Bandit, image build, Trivy, GHCR publishing, an Ansible TEST deployment with automatic rollback, and a production approval stage that is off by default (`ENABLE_PRODUCTION_DEPLOY`). **Not yet on `main` or not yet evidenced:** Jenkins status reporting to GitHub, a working production deployment, the monitoring stack (branch `feature/operations-monitoring`), Teams alert delivery, the rollback and idle Jenkins jobs, and measured results for targets 01–08.
+**Implementation status is deliberately separated from the target architecture.** `main` now contains the application and tests, a Jenkinsfile with Gitleaks, Docker Compose tests (coverage gate 80%), Bandit, image build, Trivy, GHCR publishing, an Ansible TEST deployment with automatic rollback, and a production approval stage that is off by default (`ENABLE_PRODUCTION_DEPLOY`). **Monitoring configuration is now merged** ([PR #42](https://github.com/fiveops-bcu/fiveops/pull/42)); live monitoring and notification delivery remain unverified. [PR #43](https://github.com/fiveops-bcu/fiveops/pull/43) reports a healthy TEST deployment of `b219a76` and a matching GHCR digest; the linked Jenkins build and complete release trace are still pending. **Outstanding:** Jenkins status reporting, a working production deployment, notification delivery, timed rollback drills, idle shutdown and measured results for targets 01–08.
 
 ## Team and contributions
 
@@ -55,11 +55,11 @@ Developer branch → GitHub PR → review → protected main
                         |
          Gitleaks → Bandit → Docker image → Trivy (in Jenkinsfile)
                         |
-              GHCR tagged image (in Jenkinsfile; registry evidence pending)
+              GHCR tagged image (reported TEST pull; complete release evidence pending)
                         |
       TEST deploy with rollback (in Jenkinsfile) → PROD (gated; fix pending)
                         |
-             Prometheus/Grafana/Alertmanager (branch, not yet on main)
+             Prometheus/Grafana/Alertmanager (merged; live validation pending)
 ```
 
 The four local Ubuntu VMs are defined in `Vagrantfile`:

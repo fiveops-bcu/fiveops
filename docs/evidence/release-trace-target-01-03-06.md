@@ -36,6 +36,22 @@ A release passes only if **every** link below exists and points at the same comm
 | A failing test stops the pipeline before deploy | Open a test PR that breaks one test; Jenkins shows red and no deploy stage runs | | |
 | A red PR cannot merge | Jenkins check required in `protect-main`; screenshot of the blocked merge button | | |
 
+## Interim release observation — 26 November (reported; not a target pass)
+
+| Field | Recorded observation |
+|---|---|
+| Source revision | `b219a76` (PR #41 merged 26 Nov at 19:15:55 UTC) |
+| PR and review | [PR #41](https://github.com/fiveops-bcu/fiveops/pull/41), approved by AbdiAwil |
+| Deployment handover | [PR #43](https://github.com/fiveops-bcu/fiveops/pull/43), merged 26 Nov |
+| TEST | Healthy and running `b219a76` according to PR #43 |
+| GHCR | Running digest matches pull digest according to PR #43; exact digest and raw output still needed |
+| Monitoring | TEST Node Exporter HTTP 200 reported from monitoring VM |
+| Jenkins | Successful build number, URL, stage timings and artifacts pending |
+| Production | Disabled during reported deployment; no production result claimed |
+| Acceptance | Targets 01, 03 and 06 remain pending |
+
+The latest repository commit at review is `12e7093`; it is not the reported deployed revision. Do not substitute the current main SHA for the earlier deployed release. Keep the measurement tables empty until the required raw evidence is available.
+
 ## Notes and failures
 
 Record anything that went wrong, which gate caught it and how it was fixed. Failed runs count as evidence too.
