@@ -47,3 +47,16 @@ without authorisation.
 Monitoring configurations have been implemented.
 Live deployment and testing are pending VM
 access and confirmation of server addresses.
+
+## Additional Evaluation Requirements
+
+- Verify that Prometheus collects Flask application metrics.
+- Conduct three independent alert delivery trials.
+- Confirm each alert reaches the approved team channel within five minutes.
+- Conduct three controlled rollback trials with team approval.
+- Confirm the slowest rollback takes less than ten minutes.
+- Verify the previous application version and health after each rollback.
+- Verify scheduled TEST VM shutdown using scheduler history and VM power state.
+- Record actual timings, outcomes, failures and supporting evidence.
+
+All evaluation results remain pending until live testing is completed.
