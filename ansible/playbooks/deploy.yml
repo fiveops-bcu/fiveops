@@ -1,5 +1,5 @@
 ---
-- name: Deploy FiveOps application to test
+- name: Deploy FiveOps application
   hosts: app
   become: true
 
@@ -14,6 +14,7 @@
           - (app_version | default('')) is match('^[a-f0-9]{7,40}$')
           - (app_image | default('')) == ('ghcr.io/fiveops-bcu/support-app:' ~ (app_version | default('')))
           - (db_password | default('')) | length > 0
+          - (app_digest | default('') == '') or (app_digest is match('^ghcr\\.io/fiveops-bcu/support-app@sha256:[a-f0-9]{64}$'))
         fail_msg: "Missing or invalid GHCR image, release version or database secret."
       no_log: true
 
@@ -86,7 +87,7 @@
                     retries: 15
 
                 app:
-                  image: "{{ app_image }}"
+                  image: "{{ app_digest | default(app_image, true) }}"
                   pull_policy: missing
                   restart: unless-stopped
                   ports:
@@ -125,6 +126,17 @@
           until: health_result.status == 200
           retries: 15
           delay: 4
+        - name: Verify deployed application version
+          ansible.builtin.uri:
+            url: http://127.0.0.1:8000/version
+            method: GET
+            status_code: 200
+            return_content: true
+          register: version_result
+          until: (version_result.json | default({})).get('version', '') == app_version
+          retries: 5
+          delay: 3
+
         - name: Record last successful version
           ansible.builtin.copy:
             dest: "{{ app_dir }}/last_good_tag"
