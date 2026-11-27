@@ -150,3 +150,84 @@ Credentials and vault files must **never** be committed in plaintext. Jenkins cr
 - [`docs/definition-of-done.md`](docs/definition-of-done.md) and [`docs/team-charter.md`](docs/team-charter.md)
 
 **Project status is evidence-based.** The presence of YAML, Jenkinsfile, screenshots or approved PRs does not automatically demonstrate a successful Jenkins, VM, monitoring or deployment trial.
+
+### Environment-specific deployment public key
+
+The common Ansible provisioning playbook supports the
+deploy_public_key_file variable for environment-specific
+SSH public-key selection.
+
+Example for VMware TEST:
+
+```bash
+ansible-playbook \
+  -i ansible/inventory/test/hosts.ini \
+  ansible/playbooks/common.yml \
+  --limit test \
+  -u deploy \
+  -e ansible_host=192.168.174.129 \
+  -e "deploy_public_key_file=$HOME/.ssh/id_ed25519_fiveops_deploy.pub"
+```
+
+Replace the IP address and public-key path as appropriate.
+Use only a verified public key, never a private key.
+Public-key selection is mandatory. No implicit legacy
+key fallback is permitted.
+
+Vagrant ansible_local provisioning accepts separate
+environment variables for each VM:
+
+- FIVEOPS_TEST_PUBLIC_KEY_FILE
+- FIVEOPS_PROD_PUBLIC_KEY_FILE
+- FIVEOPS_JENKINS_PUBLIC_KEY_FILE
+- FIVEOPS_MONITORING_PUBLIC_KEY_FILE
+
+Each must reference an approved absolute public-key
+path accessible inside the corresponding guest VM.
+
+Verify the selected key against the approved Jenkins
+credential before provisioning. Production requires
+a separately verified production key.
+
+#### Validation - 27 November 2026
+
+- Original check mode: changed=1.
+- Corrected check mode: changed=0.
+- First provisioning run: ok=6, changed=0, failed=0.
+- Second provisioning run: ok=6, changed=0, failed=0.
+- Application health: OK.
+- Application version: 12e7093.
+
+Existing TEST baseline idempotency verified.
+Fresh VM rebuild verification remains outstanding.
+
+### Mandatory deployment public-key validation
+
+Following peer-review feedback on 27 November 2026,
+the implicit legacy public-key fallback was removed.
+
+Infrastructure provisioning now requires an explicit
+absolute public-key path and validates the selected
+OpenSSH public key before configuration tasks execute.
+
+The Jenkins application deployment workflow continues
+to use its environment-specific SSH credentials.
+
+Verified TEST results:
+
+| Test | Result |
+|---|---|
+| Missing public-key variable | Rejected, exit code 2 |
+| Negative test | changed=0, failed=1 (expected) |
+| Positive check mode | ok=10, changed=0, failed=0 |
+| Actual run 1 at 20:50:52 UTC | ok=10, changed=0, failed=0 |
+| Actual run 2 at 20:51:14 UTC | ok=10, changed=0, failed=0 |
+| Application health | Healthy |
+| Application version | f00e601 |
+
+The TEST public-key fingerprint was verified against
+the active Jenkins TEST SSH credential.
+
+Production credential verification and fresh Vagrant
+provisioning remain outstanding. Key format validation
+does not replace environment-specific fingerprint approval.
