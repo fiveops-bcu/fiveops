@@ -25,7 +25,7 @@
 
 ## Next steps
 
-1. Resolve the GitHub commit-status 403 error by confirming the required PAT permissions.
+1. Resolve the GitHub commit-status 403 error by confirming the required token permissions and repository access.
 2. Complete diagnostic Jenkins job security verification with Abdisalan.
 3. Verify the production SSH key and production environment configuration.
 4. Complete production approval and runtime validation when authorised.
@@ -35,7 +35,7 @@
 ## Blockers and dependencies
 
 - GitHub commit-status reporting remains unsuccessful. Jenkins continues to receive HTTP 403 `Resource not accessible by personal access token` when attempting to publish commit statuses using the `github-access` credential.
-- The organisation-level GitHub token permissions require verification by Yasin and Fadumo.
+- The effective GitHub token permissions and repository access for the `github-access` credential require verification by Yasin and Fadumo.
 - Production deployment verification depends on Abdisalan completing the remaining PROD configuration and SSH key verification.
 - Diagnostic Jenkins job security requires confirmation from Abdisalan.
 - Production runtime validation remains outstanding.
@@ -44,6 +44,7 @@
 
 **Build #24 – Successful pipeline execution**
 
+- Jenkins build URL: https://win-d52ppdakv0f.tailc7815e.ts.net/job/FiveOps-Pipeline/job/main/24/
 - Branch: `main`
 - Result: SUCCESS
 - Commit SHA: `246d2c415ed9fa6b50b22115a7c2161f2a492021`
@@ -66,7 +67,7 @@
 - Jenkins received HTTP 403 during checkout and post-build commit-status updates.
 - Error: `Resource not accessible by personal access token`.
 - The pipeline itself completed successfully.
-- Organisation-level token permission remediation remains outstanding.
+- Token permission and repository access verification remains outstanding.
 
 **Automated Rollback Evaluation**
 
