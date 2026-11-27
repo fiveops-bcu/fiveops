@@ -318,3 +318,101 @@ timing tests remain outstanding.
 - Resolve remaining inventory portability issues.
 - Obtain peer review of submitted technical changes.
 - Prepare demonstration and Viva 2 evidence.
+
+## Final Evaluation Update - 27 November 2026
+
+This update supersedes outstanding statuses recorded
+in the earlier progress entries above.
+
+### 1. Production Deployment Integration
+
+- PR #46 merged.
+- Shared automatic rollback mechanism integrated.
+- Immutable image deployment supported.
+- Production runtime validation remains outstanding.
+
+### 2. Security Improvement Through Peer Review
+
+Following Arkadiusz's review, the implicit legacy
+SSH public-key fallback was removed.
+
+Explicit public-key selection is now mandatory.
+
+- Remediation commit: d9ed450
+- PR #48 merged.
+- Merge commit: e161fcd
+- Negative security test: passed.
+- Positive validation: passed.
+
+Two actual provisioning runs completed successfully:
+
+```text
+20:50:52 UTC
+test : ok=10 changed=0 unreachable=0 failed=0
+
+20:51:14 UTC
+test : ok=10 changed=0 unreachable=0 failed=0
+```
+
+The approved TEST deployment public key was verified
+against the active Jenkins SSH credential.
+
+Production key verification remains outstanding.
+
+### 3. Individual Contribution Documentation
+
+- PR #49 merged.
+- Merge commit: 55b27ab
+
+### 4. Automated Application Rollback Evaluation
+
+Implemented and executed three controlled TEST
+rollback drills using the original Ansible rescue
+mechanism and immutable GHCR images.
+
+Diagnostic Jenkins job:
+FiveOps-TEST-Rollback-Drill
+
+| Build | Duration | Result |
+|---|---:|---|
+| #1 | 15 seconds | PASS |
+| #2 | 15 seconds | PASS |
+| #3 | 14 seconds | PASS |
+
+- Average duration: 14.67 seconds.
+- Slowest duration: 15 seconds.
+- Successful recovery: 3/3.
+- Evaluation Target 02: PASS.
+
+All three tests restored the original application
+release, 55b27ab, and verified its immutable image
+reference, application health and database readiness.
+
+Independent TEST verification:
+
+```text
+2026-11-27 21:38:59 UTC
+{"status":"ok"}
+{"version":"55b27ab"}
+/var/run/postgresql:5432 - accepting connections
+```
+
+The results demonstrate controlled application
+recovery on existing TEST infrastructure.
+
+### 5. Remaining Evaluation Work
+
+- Target 01: Obtain deployment timing evidence.
+- Target 02: Completed.
+- Target 03: Confirm Jenkins build-to-digest linkage.
+- Target 04: Complete wider access-control verification.
+- Target 05: Idempotency passed; fresh rebuild pending.
+- Target 06: Confirm CI/CD quality-gate evidence.
+- Target 07: Complete coordinated alert notification tests.
+- Target 08: Confirm automated idle shutdown.
+
+Production runtime validation remains outstanding
+because of infrastructure resource limitations.
+
+Further details are documented in
+docs/operations/rollback.md.
