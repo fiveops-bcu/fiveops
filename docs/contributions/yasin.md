@@ -1,6 +1,6 @@
 # Contribution record — Yasin Mohammed Miah (Team Leader)
 
-**Last updated:** 25 November 2026
+**Last updated:** 26 November 2026
 
 **Programme:** BSc (Hons) Computing (Level 6 Top-up), Birmingham City University
 
@@ -28,9 +28,18 @@
 - The documents establish project governance and evaluation methods; the tutor's Viva 1 feedback and measured end-to-end evaluation results remain outstanding.
 - This 24 November correction updates the record of previously merged work; it is not evidence that a new demonstration or test took place.
 
+## 26 November — integration review and next actions
+
+- PR #39 (production playbook formatting) was authored by Yasin and approved by Abdisalan before merge. PR #36 remains the earlier production path and opt-in safety fix.
+- Repository review at `12e7093`: PR #40 addressed reported Debian vulnerabilities (Fadumo); PR #41 improved Gitleaks diagnostics and GHCR publishing (Arkadiusz). PR #42 merged the monitoring configuration (Aissatou); PR #43 merged the TEST handover documentation (Abdisalan). These are team members' contributions, not my personal implementations.
+- PR #43 reports TEST health, image digest agreement and monitoring connectivity for release `b219a76`; a successful Jenkins build reference, raw evidence and timed release/rollback results are still needed. Task #18 is closed, but this is not proof of Target 05.
+- The active `protect-main` ruleset requires one approval and blocks deletion/force-push; stale approvals, review conversation resolution and required CI checks remain unenforced. My next task is to coordinate working Jenkins status reporting and verify the ruleset with Fadumo.
+- Update acceptance records using only genuine run evidence, keep Task #21 open, and coordinate the internal demonstration on 29 November. The proposed 30 November code freeze requires team confirmation.
+- The original playbook expected three app PRs with written reviews by Aissatou. Actual app ownership differs: PR #1 contains my requirements work; PR #6 contains Arkadiusz's application and tests. This difference must be explained honestly, not reconstructed as three historical PRs.
+
 ## In progress
 
-- Create the GitHub Projects board, link issues #16 and #18–21, and close each issue with its merged PR.
+- Verify the GitHub Projects board URL, link issues #16 and #18–21, and close tasks only when acceptance evidence supports closure. #18 was closed on 26 November; outstanding infrastructure evaluation is still tracked.
 - Check `protect-main`: enable stale-approval dismissal and conversation resolution now; require the Jenkins status check once Jenkins can post commit statuses (Fadumo's token, issue #19).
 - Collect the Jenkins build link (Arkadiusz), GHCR image digest (Arkadiusz) and `/health` + `/version` output from TEST (Abdisalan) for one commit, and record them in [`release-trace-target-01-03-06.md`](../evidence/release-trace-target-01-03-06.md).
 - Review the follow-up PRs for the production stage (same `deploy.yml`, database secret, rollback) and the approver list.
@@ -52,7 +61,7 @@ I lead project governance, requirements and acceptance, and coordinate applicati
 - Abdisalan reports an operational Jenkins VMware VM with private Tailscale access and a Vagrant/VMware test VM in [PR #13](https://github.com/fiveops-bcu/fiveops/pull/13) and [PR #23](https://github.com/fiveops-bcu/fiveops/pull/23). Linked production deployment and CI evidence are still outstanding.
 - Jenkins does not yet post commit statuses to GitHub (no checks on any merged PR), so `protect-main` cannot require a passing build.
 - The production stage in `Jenkinsfile` passes no database secret to `deploy-prod.yml`, and that playbook has no rollback and reports `APP_VERSION: production` instead of the commit. Production deployment and Target 03 traceability depend on this fix.
-- Aissatou's monitoring stack (branch `feature/operations-monitoring`) is not yet on `main`, and its Alertmanager receiver has no Teams destination.
+- Aissatou's monitoring stack is now on `main` through PR #42. Alert delivery and live monitoring remain unverified; its Alertmanager receiver has no notification destination.
 - Original Viva 1 feedback is unavailable in the materials currently inspected; its content must not be fabricated.
 - Monitoring, rollback and timed evaluation depend on working integrated services.
 - PR #9's platform technical explanation needs a direct hand-off from Yasin to Abdisalan with a demo of the playbooks.
