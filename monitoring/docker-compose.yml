@@ -26,6 +26,7 @@ services:
       - "127.0.0.1:9093:9093"
     volumes:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ${HOME}/.fiveops-secrets/discord_url:/etc/alertmanager/discord_url:ro
       - alertmanager_data:/alertmanager
 
   blackbox:
