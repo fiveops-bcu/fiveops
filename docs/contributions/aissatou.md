@@ -71,8 +71,53 @@ My assigned responsibilities include:
 - Rollback plan: docs/operations/rollback.md
 - Test plan: docs/operations/monitoring-test-plan.md
 
+## Progress - 27 November 2026
+
+### Completed
+
+- Established secure SSH access to the monitoring VM.
+- Verified connectivity to the TEST application.
+- Verified Node Exporter and Flask application metrics.
+- Updated Prometheus targets for the TEST environment.
+- Deployed the four monitoring containers using Docker Compose.
+- Validated Prometheus and Alertmanager configurations.
+- Confirmed all three Prometheus targets were UP.
+- Verified live infrastructure and application metrics in Grafana.
+- Confirmed Alertmanager accessibility.
+- Investigated an unexpected application interruption.
+- Confirmed Prometheus detected the failed health check.
+- Recorded the interruption timestamps and alert state.
+- Communicated the monitoring findings to Abdi.
+- Captured screenshots for operational evaluation and Viva 2.
+- Prepared evaluation results documentation for Targets 02, 07 and 08.
+- Coordinated with team members regarding outstanding evaluation tasks.
+
+### Outstanding Tasks
+
+- Configure and verify Microsoft Teams notifications with Yasin.
+- Complete three coordinated alert delivery tests.
+- Complete three rollback drills with Abdi.
+- Document PostgreSQL recovery results.
+- Confirm the Jenkins idle shutdown and startup configuration.
+- Verify scheduled shutdown following team approval.
+- Confirm outstanding centralised logging requirements.
+- Finalise evaluation results and supporting evidence.
+
 ## Current Implementation Status
 
-Monitoring configuration and documentation have
-been prepared. Live deployment and testing remain
-pending infrastructure access and permissions.
+The monitoring stack has been successfully deployed and
+verified in the TEST environment. Prometheus, Grafana,
+Alertmanager and Blackbox Exporter are operational.
+
+Application and infrastructure metrics have been verified.
+An unexpected application interruption was successfully
+detected and documented.
+
+Teams notification delivery, controlled recovery tests,
+database recovery and scheduled shutdown verification
+remain pending team coordination.
+
+Production monitoring remains outside the current
+verification scope until infrastructure details are confirmed.
+
+Additional evidence: docs/operations/evaluation-results.md
