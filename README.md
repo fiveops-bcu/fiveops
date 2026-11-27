@@ -166,13 +166,28 @@ ansible-playbook \
   --limit test \
   -u deploy \
   -e ansible_host=192.168.174.129 \
-  -e ansible_python_interpreter=/usr/bin/python3.12 \
   -e "deploy_public_key_file=$HOME/.ssh/id_ed25519_fiveops_deploy.pub"
 ```
 
 Replace the IP address and public-key path as appropriate.
 Use only a verified public key, never a private key.
-The legacy default key must be verified before use.
+Public-key selection is mandatory. No implicit legacy
+key fallback is permitted.
+
+Vagrant ansible_local provisioning accepts separate
+environment variables for each VM:
+
+- FIVEOPS_TEST_PUBLIC_KEY_FILE
+- FIVEOPS_PROD_PUBLIC_KEY_FILE
+- FIVEOPS_JENKINS_PUBLIC_KEY_FILE
+- FIVEOPS_MONITORING_PUBLIC_KEY_FILE
+
+Each must reference an approved absolute public-key
+path accessible inside the corresponding guest VM.
+
+Verify the selected key against the approved Jenkins
+credential before provisioning. Production requires
+a separately verified production key.
 
 #### Validation - 27 November 2026
 
@@ -185,3 +200,34 @@ The legacy default key must be verified before use.
 
 Existing TEST baseline idempotency verified.
 Fresh VM rebuild verification remains outstanding.
+
+### Mandatory deployment public-key validation
+
+Following peer-review feedback on 27 November 2026,
+the implicit legacy public-key fallback was removed.
+
+Infrastructure provisioning now requires an explicit
+absolute public-key path and validates the selected
+OpenSSH public key before configuration tasks execute.
+
+The Jenkins application deployment workflow continues
+to use its environment-specific SSH credentials.
+
+Verified TEST results:
+
+| Test | Result |
+|---|---|
+| Missing public-key variable | Rejected, exit code 2 |
+| Negative test | changed=0, failed=1 (expected) |
+| Positive check mode | ok=10, changed=0, failed=0 |
+| Actual run 1 at 20:50:52 UTC | ok=10, changed=0, failed=0 |
+| Actual run 2 at 20:51:14 UTC | ok=10, changed=0, failed=0 |
+| Application health | Healthy |
+| Application version | f00e601 |
+
+The TEST public-key fingerprint was verified against
+the active Jenkins TEST SSH credential.
+
+Production credential verification and fresh Vagrant
+provisioning remain outstanding. Key format validation
+does not replace environment-specific fingerprint approval.

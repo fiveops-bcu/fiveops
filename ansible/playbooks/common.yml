@@ -3,6 +3,40 @@
   hosts: all
   become: true
 
+  pre_tasks:
+    - name: Require explicit deployment public key
+      ansible.builtin.assert:
+        that:
+          - deploy_public_key_file is defined
+          - (deploy_public_key_file | default('')) is match('^/.+[.]pub$')
+        fail_msg: "Supply an approved absolute public-key path. No default key is permitted."
+
+    - name: Read selected public key
+      ansible.builtin.set_fact:
+        fiveops_deploy_public_key: "{{ lookup('ansible.builtin.file', deploy_public_key_file) | trim }}"
+      no_log: true
+
+    - name: Validate public key format
+      ansible.builtin.assert:
+        that:
+          - fiveops_deploy_public_key.splitlines() | length == 1
+          - fiveops_deploy_public_key is match('^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)) [A-Za-z0-9+/]+={0,2}( .*)?$')
+        fail_msg: "An OpenSSH public key is required."
+      no_log: true
+
+    - name: Validate public key fingerprint
+      ansible.builtin.command:
+        argv:
+          - ssh-keygen
+          - -lf
+          - "{{ deploy_public_key_file }}"
+      delegate_to: localhost
+      vars:
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
+      become: false
+      check_mode: false
+      changed_when: false
+
   tasks:
     - name: Install Docker and SSH packages
       ansible.builtin.apt:
@@ -41,10 +75,7 @@
       ansible.builtin.lineinfile:
         path: /home/deploy/.ssh/authorized_keys
         create: true
-        line: >-
-          {{ lookup('ansible.builtin.file',
-          deploy_public_key_file |
-          default(playbook_dir + '/files/deploy_key.pub')) | trim }}
+        line: "{{ fiveops_deploy_public_key }}"
         owner: deploy
         group: deploy
         mode: "0600"

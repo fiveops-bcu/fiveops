@@ -24,6 +24,10 @@ Vagrant.configure("2") do |config|
         ansible.playbook        = "ansible/playbooks/site.yml"
         ansible.inventory_path = "ansible/inventory/vagrant/hosts.ini"
         ansible.limit          = name
+        ansible.extra_vars = {
+          "deploy_public_key_file" =>
+            ENV.fetch("FIVEOPS_#{name.upcase}_PUBLIC_KEY_FILE", "")
+        }
       end
     end
   end
