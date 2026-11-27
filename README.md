@@ -150,3 +150,38 @@ Credentials and vault files must **never** be committed in plaintext. Jenkins cr
 - [`docs/definition-of-done.md`](docs/definition-of-done.md) and [`docs/team-charter.md`](docs/team-charter.md)
 
 **Project status is evidence-based.** The presence of YAML, Jenkinsfile, screenshots or approved PRs does not automatically demonstrate a successful Jenkins, VM, monitoring or deployment trial.
+
+### Environment-specific deployment public key
+
+The common Ansible provisioning playbook supports the
+deploy_public_key_file variable for environment-specific
+SSH public-key selection.
+
+Example for VMware TEST:
+
+```bash
+ansible-playbook \
+  -i ansible/inventory/test/hosts.ini \
+  ansible/playbooks/common.yml \
+  --limit test \
+  -u deploy \
+  -e ansible_host=192.168.174.129 \
+  -e ansible_python_interpreter=/usr/bin/python3.12 \
+  -e "deploy_public_key_file=$HOME/.ssh/id_ed25519_fiveops_deploy.pub"
+```
+
+Replace the IP address and public-key path as appropriate.
+Use only a verified public key, never a private key.
+The legacy default key must be verified before use.
+
+#### Validation - 27 November 2026
+
+- Original check mode: changed=1.
+- Corrected check mode: changed=0.
+- First provisioning run: ok=6, changed=0, failed=0.
+- Second provisioning run: ok=6, changed=0, failed=0.
+- Application health: OK.
+- Application version: 12e7093.
+
+Existing TEST baseline idempotency verified.
+Fresh VM rebuild verification remains outstanding.

@@ -41,7 +41,10 @@
       ansible.builtin.lineinfile:
         path: /home/deploy/.ssh/authorized_keys
         create: true
-        line: "{{ lookup('file', playbook_dir + '/files/deploy_key.pub') | trim }}"
+        line: >-
+          {{ lookup('ansible.builtin.file',
+          deploy_public_key_file |
+          default(playbook_dir + '/files/deploy_key.pub')) | trim }}
         owner: deploy
         group: deploy
         mode: "0600"
