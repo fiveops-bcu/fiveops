@@ -29,6 +29,14 @@ services:
       - ${HOME}/.fiveops-secrets/discord_url:/etc/alertmanager/discord_url:ro
       - alertmanager_data:/alertmanager
 
+  loki:
+    image: grafana/loki:3.5.0
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki.yml
+    volumes:
+      - ./loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+
   blackbox:
     image: prom/blackbox-exporter:v0.27.0
     restart: unless-stopped
@@ -39,3 +47,4 @@ volumes:
   prometheus_data:
   grafana_data:
   alertmanager_data:
+  loki_data:
