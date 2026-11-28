@@ -47,7 +47,38 @@ port forwarding.
 - Test alerts and recovery with team approval.
 - Record results in the monitoring test plan.
 
+## Discord Alert Notifications
+
+Discord was selected as the alternative notification
+channel following the university's Microsoft Teams
+DLP restriction and team lead approval.
+
+- Store the webhook URL outside the Git repository.
+- Use the private ~/.fiveops-secrets/discord_url file.
+- Restrict access to the webhook secret.
+- Mount the secret into Alertmanager as read-only.
+- Verify that the Alertmanager container can read the
+  secret without exposing its contents.
+- Validate the Alertmanager configuration before deployment.
+- Verify firing and recovery notifications in Discord.
+- Never include webhook credentials in GitHub or screenshots.
+
 ## Current Status
 
-Deployment and live testing are pending
-infrastructure access and permissions.
+The monitoring stack was successfully deployed on
+the monitoring VM on 27 November 2026.
+
+Prometheus, Grafana, Alertmanager and Blackbox Exporter
+were running successfully. All three TEST monitoring
+targets were verified as UP, and Grafana displayed
+live application and infrastructure metrics.
+
+The Discord notification configuration has been
+prepared and committed. Live deployment and notification
+delivery verification remain pending.
+
+Production monitoring remains outside the current
+verified deployment scope.
+
+Further testing requires monitoring VM availability
+and coordination with the project team.
