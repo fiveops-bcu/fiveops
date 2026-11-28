@@ -10,13 +10,13 @@
 | Grafana application metrics | Passed |
 | Alertmanager accessibility | Passed |
 | Prometheus alert rules | Loaded successfully |
-| Teams notification delivery | Pending |
+| Discord notification delivery | Pending |
 
 ## Target 07 - Alert Delivery Tests
 
 Required: Each notification must arrive within five minutes.
 
-| Trial | Failure time (UTC) | Teams notification time (UTC) | Elapsed time | Result |
+| Trial | Failure time (UTC) | Discord notification time (UTC) | Elapsed time | Result |
 |---|---|---|---|---|
 | 1 | Pending | Pending | Pending | Pending |
 | 2 | Pending | Pending | Pending | Pending |

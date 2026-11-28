@@ -94,7 +94,7 @@ My assigned responsibilities include:
 
 ### Outstanding Tasks
 
-- Configure and verify Microsoft Teams notifications with Yasin.
+- Configure and verify Discord notifications with Yasin.
 - Complete three coordinated alert delivery tests.
 - Complete three rollback drills with Abdi.
 - Document PostgreSQL recovery results.
@@ -113,7 +113,7 @@ Application and infrastructure metrics have been verified.
 An unexpected application interruption was successfully
 detected and documented.
 
-Teams notification delivery, controlled recovery tests,
+Discord notification delivery, controlled recovery tests,
 database recovery and scheduled shutdown verification
 remain pending team coordination.
 
