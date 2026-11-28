@@ -115,3 +115,70 @@ As Quality and Security Engineer, my responsibilities include verifying the secu
 My contribution includes implementing automated security gates, conducting controlled security tests, reviewing access controls, verifying vulnerability remediation and collecting evidence of successful security validation before application deployment.
 
 The successful execution of Jenkins build #19 demonstrates that automated security scanning, application testing, container publication and TEST deployment can operate together within the integrated CI/CD pipeline. However, continued vulnerability monitoring, access-control improvements and further negative testing remain necessary to strengthen the overall security posture.
+
+## 28 November 2026 — Security validation and remediation
+
+### Bandit negative security test
+
+- Created an isolated test branch, `test/security-bandit-negative`, to validate the automated Bandit security gate without introducing insecure code into main.
+- Introduced a controlled Python security issue using `subprocess` with `shell=True`.
+- Jenkins Build #2, executed on 27 November 2026, detected a HIGH-severity B602 issue associated with CWE-78.
+- The security gate correctly failed the build and prevented Docker image creation.
+- Application tests reported no failures, demonstrating that functional testing alone is insufficient to identify security weaknesses.
+- Test commit: [110eaa2](https://github.com/fiveops-bcu/fiveops/commit/110eaa2).
+- Result: PASS — expected security rejection demonstrated.
+
+### Bandit remediation and recovery test
+
+- Removed the temporary insecure Python file on 28 November 2026.
+- Jenkins Build #3 completed successfully in 31 seconds with no application test failures.
+- Security reports for Bandit, Gitleaks and Trivy were generated and archived.
+- Cleanup commit: [d4676ae](https://github.com/fiveops-bcu/fiveops/commit/d4676ae).
+- Preserved Jenkins Builds #2 and #3 using the permanent build retention option and added descriptions explaining their purpose and results.
+- Result: PASS — successful pipeline recovery following remediation.
+
+### Gitleaks negative security test
+
+- Created a separate test branch, `test/security-gitleaks-negative`, to evaluate secret detection.
+- Used synthetic test data only. No genuine credentials were introduced.
+- Initial test commit: [db0639c](https://github.com/fiveops-bcu/fiveops/commit/db0639c).
+- Updated test commit: [857a016](https://github.com/fiveops-bcu/fiveops/commit/857a016).
+- Jenkins Builds #3 and #4 completed successfully rather than producing the expected security rejection.
+- Result: INCONCLUSIVE — negative security gate behaviour was not demonstrated.
+- Removed the temporary test file following validation.
+- Neither security test branch is intended to be merged into main.
+
+### Security validation summary
+
+| Security control | Result |
+| --- | --- |
+| Bandit normal scan | Passed |
+| Bandit negative test | Passed — build correctly blocked |
+| Bandit recovery test | Passed |
+| Gitleaks normal scan | Passed |
+| Gitleaks negative test | Inconclusive |
+| Trivy image security gate | Passed under the configured vulnerability policy |
+| Integrated TEST deployment | Passed in main Build #19 |
+
+### Critical evaluation and remaining recommendations
+
+The Bandit negative and recovery tests demonstrate that automated security controls can prevent insecure code from progressing through the CI/CD pipeline and allow development to resume following remediation.
+
+However, the Gitleaks negative test highlights a limitation in the current validation evidence. A successful scan does not guarantee that every possible secret format will be detected. Further investigation of detection rules, exclusions and test fixtures is recommended.
+
+The remaining unfixed container vulnerabilities should continue to be monitored. Jenkins authorization, credential permissions and repository administration controls also require further verification before Target 04 can be recorded as fully satisfied.
+
+Overall, the implemented security gates provide an additional layer of protection beyond functional testing. The results demonstrate practical security validation, remediation and recovery while recognising the limitations of automated scanning.
+
+### Evidence retained
+
+- Jenkins main Build #19 and archived security reports.
+- Bandit negative Build #2 and recovery Build #3.
+- GitHub test and remediation commits.
+- Gitleaks negative test build results.
+- GitHub contribution and pull request history.
+
+All deliberately introduced security test files were removed from the current versions of their isolated test branches. Synthetic test data remains in Git history, and these branches must not be merged into main.
+
+
+
