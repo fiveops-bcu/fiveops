@@ -2,4 +2,4 @@
 # Synthetic test data only. Not a real credential.
 # Do not merge into main.
 
-api_key = "FiveOpsSyntheticTestOnly8xQ4mZ7pL2vN9kR6"
+aws_access_key_id = "AKIAIOSFODNN7EXAMPLE"
