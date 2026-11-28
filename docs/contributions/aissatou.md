@@ -100,7 +100,7 @@ My assigned responsibilities include:
 - Document PostgreSQL recovery results.
 - Confirm the Jenkins idle shutdown and startup configuration.
 - Verify scheduled shutdown following team approval.
-- Confirm outstanding centralised logging requirements.
+- Deploy and verify centralised logging using Loki and Grafana Alloy.
 - Finalise evaluation results and supporting evidence.
 
 ## Current Implementation Status
@@ -131,3 +131,17 @@ Additional evidence: docs/operations/evaluation-results.md
 - Formally approved PR #44, which was subsequently merged into main.
 
 Evidence: https://github.com/fiveops-bcu/fiveops/pull/44
+
+## Centralised Logging Progress - 28 November 2026
+
+- Created the Loki configuration for centralised log storage.
+- Configured Grafana to use Loki as a data source.
+- Prepared Grafana Alloy to collect TEST application container logs.
+- Updated Docker Compose to include Loki and persistent log storage.
+- Committed and pushed the logging configurations to GitHub.
+
+Evidence: commit a306a91.
+
+Live deployment, Alloy configuration validation and end-to-end
+log collection verification remain pending VM availability
+and authorised access to the TEST environment.
